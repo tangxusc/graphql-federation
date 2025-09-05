@@ -1,4 +1,4 @@
-module higress-graphql
+module github.com/tangxusc/higress-graphql-federation
 
 go 1.24.1
 
