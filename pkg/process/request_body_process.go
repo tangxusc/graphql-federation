@@ -48,11 +48,10 @@ func processRequestBody(ctx wrapper.HttpContext, cfg config.FederationConfig, bo
 
 	opts = append(opts, engine.WithRequestTraceOptions(tracingOpts))
 
-
 	//TODO: 实现此处执行graphql逻辑
 	//buf := bytes.NewBuffer(make([]byte, 0, 4096))
 	//resultWriter := graphql.NewEngineResultWriterFromBuffer(buf)
-	//if err = cfg.ExecutionEngine.Execute(context.TODO(), &gqlRequest, &resultWriter, opts...); err != nil {
+	// if err = cfg.ExecutionEngine.Execute(context.TODO(), &gqlRequest, &resultWriter, opts...); err != nil {
 	//	proxywasm.LogErrorf("Failed to execute GraphQL query: %v", err)
 	//	_ = proxywasm.SendHttpResponse(http.StatusInternalServerError, nil, []byte(err.Error()), -1)
 	//	return types.ActionContinue

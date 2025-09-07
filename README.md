@@ -1,5 +1,7 @@
 # higress-graphql
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wundergraph/graphql-go-tools)
+
 A GraphQL plugin for Higress based on WebAssembly.
 
 ## Overview
