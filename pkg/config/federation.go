@@ -2,9 +2,11 @@ package config
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	"github.com/wundergraph/graphql-go-tools/execution/engine"
 	"github.com/wundergraph/graphql-go-tools/v2/pkg/engine/resolve"
-	"time"
 
 	"github.com/higress-group/wasm-go/pkg/wrapper"
 	"github.com/tidwall/gjson"
@@ -25,7 +27,7 @@ type FederationConfig struct {
 	EngineConfigFactory *engine.FederationEngineConfigFactory
 	ExecutionEngine     *engine.ExecutionEngine
 	Logger              WasmLogger
-	HttpClient          *HttpClientAdapter
+	HttpClient          *http.Client
 	CancelFunc          context.CancelFunc
 	Ctx                 context.Context
 }
@@ -40,7 +42,9 @@ func parseFederationConfig(json gjson.Result, config *FederationConfig) error {
 	config.DebugMode = json.Get("debugMode").Bool()
 
 	config.Logger = WasmLogger{}
-	config.HttpClient = &HttpClientAdapter{}
+	config.HttpClient = &http.Client{
+		Transport: &HttpClientRoundTripper{},
+	}
 	config.Ctx, config.CancelFunc = context.WithCancel(context.TODO())
 
 	var subgraphsConfigs []engine.SubgraphConfiguration
@@ -49,8 +53,11 @@ func parseFederationConfig(json gjson.Result, config *FederationConfig) error {
 	//	FQDN: serviceName,
 	//	Port: servicePort,
 	//})
-	//config.EngineConfigFactory = engine.NewFederationEngineConfigFactory(todo, subgraphsConfigs, engine.WithFederationHttpClient(config.HttpClient))
-	config.EngineConfigFactory = engine.NewFederationEngineConfigFactory(config.Ctx, subgraphsConfigs)
+	// config.EngineConfigFactory = engine.NewFederationEngineConfigFactory(config.Ctx, subgraphsConfigs)
+	config.EngineConfigFactory = engine.NewFederationEngineConfigFactory(
+		config.Ctx,
+		subgraphsConfigs, engine.WithFederationHttpClient(config.HttpClient),
+	)
 	engineConfig, err := config.EngineConfigFactory.BuildEngineConfiguration()
 	if err != nil {
 		return err
