@@ -43,15 +43,32 @@ To build the WASM module:
 make build
 ```
 
-This will produce a `graphql.wasm` file that can be loaded into Envoy.
+This will produce a `graphql-federation.wasm` file that can be loaded into Envoy.
 
 ## Testing
 
 To test the plugin locally:
 
 ```bash
-docker-compose up
+docker-compose -f ./scripts/docker-compose.yaml up -d
+# 检查服务状态
+docker-compose -f ./scripts/docker-compose.yaml ps
 ```
+send graphql request
+```shell
+curl -X POST http://localhost:10000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "{ users { id name } products { id name price } }"
+  }'
+  
+docker logs scripts-envoy-1
+```
+close docker container
+```shell
+docker-compose -f ./scripts/docker-compose.yaml down 
+```
+
 
 This will start an Envoy instance with the GraphQL plugin loaded, along with an httpbin service for testing.
 

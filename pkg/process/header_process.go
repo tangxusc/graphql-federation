@@ -20,7 +20,7 @@ func onHttpRequestHeaders(ctx wrapper.HttpContext, cfg config.FederationConfig) 
 
 	}
 	proxywasm.LogError("onHttpRequestHeaders")
-	proxywasm.AddHttpRequestHeader("hello", "world")
+	//proxywasm.AddHttpRequestHeader("hello", "world")
 	// if cfg.MockEnable {
 	// 	proxywasm.SendHttpResponse(200, nil, []byte("hello world"), -1)
 	// }

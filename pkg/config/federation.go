@@ -1,6 +1,9 @@
 package config
 
 import (
+	"context"
+	"github.com/wundergraph/graphql-go-tools/execution/engine"
+	"github.com/wundergraph/graphql-go-tools/v2/pkg/engine/resolve"
 	"time"
 
 	"github.com/higress-group/wasm-go/pkg/wrapper"
@@ -12,13 +15,19 @@ func init() {
 }
 
 type FederationConfig struct {
-	EnableQueryPlan  bool          `json:"enableQueryPlanning"`
-	EnableCaching    bool          `json:"enableCaching"`
-	MaxQueryDepth    int64         `json:"maxQueryDepth"`
-	QueryTimeout     time.Duration `json:"queryTimeout"`
-	EnableIntrospect bool          `json:"enableIntrospection"`
-	GraphqlAddress   string        `json:"graphqlAddress"`
-	DebugMode        bool          `json:"debugMode"`
+	EnableQueryPlan     bool          `json:"enableQueryPlanning"`
+	EnableCaching       bool          `json:"enableCaching"`
+	MaxQueryDepth       int64         `json:"maxQueryDepth"`
+	QueryTimeout        time.Duration `json:"queryTimeout"`
+	EnableIntrospect    bool          `json:"enableIntrospection"`
+	GraphqlAddress      string        `json:"graphqlAddress"`
+	DebugMode           bool          `json:"debugMode"`
+	EngineConfigFactory *engine.FederationEngineConfigFactory
+	ExecutionEngine     *engine.ExecutionEngine
+	Logger              WasmLogger
+	HttpClient          *HttpClientAdapter
+	CancelFunc          context.CancelFunc
+	Ctx                 context.Context
 }
 
 func parseFederationConfig(json gjson.Result, config *FederationConfig) error {
@@ -29,5 +38,28 @@ func parseFederationConfig(json gjson.Result, config *FederationConfig) error {
 	config.EnableIntrospect = json.Get("enableIntrospection").Bool()
 	config.GraphqlAddress = json.Get("graphqlAddress").String()
 	config.DebugMode = json.Get("debugMode").Bool()
+
+	config.Logger = WasmLogger{}
+	config.HttpClient = &HttpClientAdapter{}
+	config.Ctx, config.CancelFunc = context.WithCancel(context.TODO())
+
+	var subgraphsConfigs []engine.SubgraphConfiguration
+	//TODO: http client
+	//clusterClient := wrapper.NewClusterClient(wrapper.FQDNCluster{
+	//	FQDN: serviceName,
+	//	Port: servicePort,
+	//})
+	//config.EngineConfigFactory = engine.NewFederationEngineConfigFactory(todo, subgraphsConfigs, engine.WithFederationHttpClient(config.HttpClient))
+	config.EngineConfigFactory = engine.NewFederationEngineConfigFactory(config.Ctx, subgraphsConfigs)
+	engineConfig, err := config.EngineConfigFactory.BuildEngineConfiguration()
+	if err != nil {
+		return err
+	}
+	config.ExecutionEngine, err = engine.NewExecutionEngine(config.Ctx, config.Logger, engineConfig, resolve.ResolverOptions{
+		MaxConcurrency: 1024,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
