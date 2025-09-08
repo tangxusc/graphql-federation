@@ -1,0 +1,7 @@
+go 1.25.0
+
+use (
+	.
+	./graphql-go-tools-v2
+	./graphql-go-tools-execution
+)

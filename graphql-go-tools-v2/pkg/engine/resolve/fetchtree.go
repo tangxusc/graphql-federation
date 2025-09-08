@@ -1,0 +1,413 @@
+package resolve
+
+import (
+	"fmt"
+	"strings"
+)
+
+type FetchTreeNode struct {
+	Kind FetchTreeNodeKind `json:"kind"`
+	// Trigger is only set for subscription
+	Trigger         *FetchTreeNode   `json:"trigger"`
+	Item            *FetchItem       `json:"item"`
+	ChildNodes      []*FetchTreeNode `json:"child_nodes"`
+	NormalizedQuery string           `json:"normalized_query"`
+}
+
+type FetchTreeNodeKind string
+
+const (
+	FetchTreeNodeKindSingle   FetchTreeNodeKind = "Single"
+	FetchTreeNodeKindSequence FetchTreeNodeKind = "Sequence"
+	FetchTreeNodeKindParallel FetchTreeNodeKind = "Parallel"
+	FetchTreeNodeKindTrigger  FetchTreeNodeKind = "Trigger"
+)
+
+func Sequence(children ...*FetchTreeNode) *FetchTreeNode {
+	return &FetchTreeNode{
+		Kind:       FetchTreeNodeKindSequence,
+		ChildNodes: children,
+	}
+}
+
+func Parallel(children ...*FetchTreeNode) *FetchTreeNode {
+	return &FetchTreeNode{
+		Kind:       FetchTreeNodeKindParallel,
+		ChildNodes: children,
+	}
+}
+
+func ObjectPath(path ...string) FetchItemPathElement {
+	return FetchItemPathElement{
+		Kind: FetchItemPathElementKindObject,
+		Path: path,
+	}
+}
+
+func PathElementWithTypeNames(element FetchItemPathElement, typeNames []string) FetchItemPathElement {
+	element.TypeNames = typeNames
+	return element
+}
+
+func ArrayPath(path ...string) FetchItemPathElement {
+	return FetchItemPathElement{
+		Kind: FetchItemPathElementKindArray,
+		Path: path,
+	}
+}
+
+func Single(fetch Fetch, path ...FetchItemPathElement) *FetchTreeNode {
+	return &FetchTreeNode{
+		Kind: FetchTreeNodeKindSingle,
+		Item: &FetchItem{
+			Fetch:     fetch,
+			FetchPath: path,
+		},
+	}
+}
+
+func SingleWithPath(fetch Fetch, responsePath string, path ...FetchItemPathElement) *FetchTreeNode {
+	node := &FetchTreeNode{
+		Kind: FetchTreeNodeKindSingle,
+		Item: &FetchItem{
+			Fetch:        fetch,
+			FetchPath:    path,
+			ResponsePath: responsePath,
+		},
+	}
+	if responsePath != "" {
+		node.Item.ResponsePathElements = strings.Split(responsePath, ".")
+	}
+	return node
+}
+
+type FetchTreeTraceNode struct {
+	Kind     FetchTreeNodeKind     `json:"kind"`
+	Children []*FetchTreeTraceNode `json:"children,omitempty"`
+	Fetch    *FetchTraceNode       `json:"fetch,omitempty"`
+}
+
+type FetchTraceNode struct {
+	Kind       string                 `json:"kind"`
+	Path       string                 `json:"path"`
+	SourceID   string                 `json:"source_id"`
+	SourceName string                 `json:"source_name"`
+	Trace      *DataSourceLoadTrace   `json:"trace,omitempty"`
+	Traces     []*DataSourceLoadTrace `json:"traces,omitempty"`
+}
+
+func (n *FetchTreeNode) Trace() *FetchTreeTraceNode {
+	if n == nil {
+		return nil
+	}
+	trace := &FetchTreeTraceNode{
+		Kind: n.Kind,
+	}
+	switch n.Kind {
+	case FetchTreeNodeKindSingle:
+		switch f := n.Item.Fetch.(type) {
+		case *SingleFetch:
+			trace.Fetch = &FetchTraceNode{
+				Kind:       "Single",
+				SourceID:   f.Info.DataSourceID,
+				SourceName: f.Info.DataSourceName,
+				Trace:      f.Trace,
+				Path:       n.Item.ResponsePath,
+			}
+		case *EntityFetch:
+			trace.Fetch = &FetchTraceNode{
+				Kind:       "Entity",
+				SourceID:   f.Info.DataSourceID,
+				SourceName: f.Info.DataSourceName,
+				Trace:      f.Trace,
+				Path:       n.Item.ResponsePath,
+			}
+		case *BatchEntityFetch:
+			trace.Fetch = &FetchTraceNode{
+				Kind:       "BatchEntity",
+				SourceID:   f.Info.DataSourceID,
+				SourceName: f.Info.DataSourceName,
+				Trace:      f.Trace,
+				Path:       n.Item.ResponsePath,
+			}
+		case *ParallelListItemFetch:
+			trace.Fetch = &FetchTraceNode{
+				Kind:       "ParallelList",
+				SourceID:   f.Fetch.Info.DataSourceID,
+				SourceName: f.Fetch.Info.DataSourceName,
+				Traces:     make([]*DataSourceLoadTrace, len(f.Traces)),
+				Path:       n.Item.ResponsePath,
+			}
+			for i, t := range f.Traces {
+				trace.Fetch.Traces[i] = t.Trace
+			}
+		default:
+		}
+	case FetchTreeNodeKindSequence, FetchTreeNodeKindParallel:
+		trace.Children = make([]*FetchTreeTraceNode, len(n.ChildNodes))
+		for i, c := range n.ChildNodes {
+			trace.Children[i] = c.Trace()
+		}
+	}
+	return trace
+}
+
+type FetchTreeQueryPlanNode struct {
+	Version         string                    `json:"version,omitempty"`
+	Kind            FetchTreeNodeKind         `json:"kind"`
+	Trigger         *FetchTreeQueryPlan       `json:"trigger,omitempty"`
+	Children        []*FetchTreeQueryPlanNode `json:"children,omitempty"`
+	Fetch           *FetchTreeQueryPlan       `json:"fetch,omitempty"`
+	NormalizedQuery string                    `json:"normalizedQuery,omitempty"`
+}
+
+type FetchTreeQueryPlan struct {
+	Kind              string            `json:"kind"`
+	Path              string            `json:"path,omitempty"`
+	SubgraphName      string            `json:"subgraphName"`
+	SubgraphID        string            `json:"subgraphId"`
+	FetchID           int               `json:"fetchId"`
+	DependsOnFetchIDs []int             `json:"dependsOnFetchIds,omitempty"`
+	Representations   []Representation  `json:"representations,omitempty"`
+	Query             string            `json:"query,omitempty"`
+	Dependencies      []FetchDependency `json:"dependencies,omitempty"`
+}
+
+func (n *FetchTreeNode) QueryPlan() *FetchTreeQueryPlanNode {
+	if n == nil {
+		return nil
+	}
+
+	plan := n.queryPlan()
+	plan.Version = "1"
+
+	if n.Trigger != nil && n.Trigger.Item != nil && n.Trigger.Item.Fetch != nil {
+		if f, ok := n.Trigger.Item.Fetch.(*SingleFetch); ok {
+			plan.Trigger = &FetchTreeQueryPlan{
+				Kind:         "Trigger",
+				Path:         n.Trigger.Item.ResponsePath,
+				SubgraphName: f.Info.DataSourceName,
+				SubgraphID:   f.Info.DataSourceID,
+				FetchID:      f.FetchDependencies.FetchID,
+				Query:        f.Info.QueryPlan.Query,
+			}
+		}
+	}
+
+	return plan
+}
+
+func (n *FetchTreeNode) queryPlan() *FetchTreeQueryPlanNode {
+	if n == nil {
+		return nil
+	}
+	queryPlan := &FetchTreeQueryPlanNode{
+		Kind:            n.Kind,
+		NormalizedQuery: n.NormalizedQuery,
+	}
+	switch n.Kind {
+	case FetchTreeNodeKindSingle:
+		switch f := n.Item.Fetch.(type) {
+		case *SingleFetch:
+			queryPlan.Fetch = &FetchTreeQueryPlan{
+				Kind:              "Single",
+				FetchID:           f.FetchDependencies.FetchID,
+				DependsOnFetchIDs: f.FetchDependencies.DependsOnFetchIDs,
+				SubgraphName:      f.Info.DataSourceName,
+				SubgraphID:        f.Info.DataSourceID,
+				Path:              n.Item.ResponsePath,
+				Dependencies:      f.FetchConfiguration.CoordinateDependencies,
+			}
+
+			if f.Info.QueryPlan != nil {
+				queryPlan.Fetch.Query = f.Info.QueryPlan.Query
+				queryPlan.Fetch.Representations = f.Info.QueryPlan.DependsOnFields
+			}
+		case *EntityFetch:
+			queryPlan.Fetch = &FetchTreeQueryPlan{
+				Kind:              "Entity",
+				FetchID:           f.FetchDependencies.FetchID,
+				DependsOnFetchIDs: f.FetchDependencies.DependsOnFetchIDs,
+				SubgraphName:      f.Info.DataSourceName,
+				SubgraphID:        f.Info.DataSourceID,
+				Path:              n.Item.ResponsePath,
+				Dependencies:      f.CoordinateDependencies,
+			}
+
+			if f.Info.QueryPlan != nil {
+				queryPlan.Fetch.Query = f.Info.QueryPlan.Query
+				queryPlan.Fetch.Representations = f.Info.QueryPlan.DependsOnFields
+			}
+		case *BatchEntityFetch:
+			queryPlan.Fetch = &FetchTreeQueryPlan{
+				Kind:              "BatchEntity",
+				FetchID:           f.FetchDependencies.FetchID,
+				DependsOnFetchIDs: f.FetchDependencies.DependsOnFetchIDs,
+				SubgraphName:      f.Info.DataSourceName,
+				SubgraphID:        f.Info.DataSourceID,
+				Path:              n.Item.ResponsePath,
+				Dependencies:      f.CoordinateDependencies,
+			}
+
+			if f.Info.QueryPlan != nil {
+				queryPlan.Fetch.Query = f.Info.QueryPlan.Query
+				queryPlan.Fetch.Representations = f.Info.QueryPlan.DependsOnFields
+			}
+		case *ParallelListItemFetch:
+			queryPlan.Fetch = &FetchTreeQueryPlan{
+				Kind:              "ParallelList",
+				FetchID:           f.Fetch.FetchDependencies.FetchID,
+				DependsOnFetchIDs: f.Fetch.FetchDependencies.DependsOnFetchIDs,
+				SubgraphName:      f.Fetch.Info.DataSourceName,
+				SubgraphID:        f.Fetch.Info.DataSourceID,
+				Path:              n.Item.ResponsePath,
+			}
+
+			if f.Fetch.Info.QueryPlan != nil {
+				queryPlan.Fetch.Query = f.Fetch.Info.QueryPlan.Query
+				queryPlan.Fetch.Representations = f.Fetch.Info.QueryPlan.DependsOnFields
+			}
+		default:
+		}
+	case FetchTreeNodeKindSequence, FetchTreeNodeKindParallel:
+		queryPlan.Children = make([]*FetchTreeQueryPlanNode, len(n.ChildNodes))
+		for i, c := range n.ChildNodes {
+			queryPlan.Children[i] = c.queryPlan()
+		}
+	}
+	return queryPlan
+}
+
+func (n *FetchTreeQueryPlanNode) PrettyPrint() string {
+	printer := PlanPrinter{}
+	return printer.Print(n)
+}
+
+type PlanPrinter struct {
+	depth int
+	buf   strings.Builder
+}
+
+func (p *PlanPrinter) Print(plan *FetchTreeQueryPlanNode) string {
+	p.buf.Reset()
+
+	p.print("QueryPlan {")
+	p.printPlanNode(plan, true)
+	p.print("}")
+
+	return p.buf.String()
+}
+
+func (p *PlanPrinter) printPlanNode(plan *FetchTreeQueryPlanNode, increaseDepth bool) {
+	if increaseDepth {
+		p.depth++
+	}
+	switch plan.Kind {
+	case FetchTreeNodeKindSingle:
+		p.printFetchInfo(plan.Fetch)
+	case FetchTreeNodeKindSequence:
+		isSubscription := plan.Trigger != nil
+		hasChildren := len(plan.Children) > 0
+		// Special case for Subscriptions:
+		// "Primary" key has plan.Trigger. "Rest" has plan.Children
+		if isSubscription {
+			p.print("Subscription {")
+			p.depth++
+			p.print("Primary: {")
+			p.depth++
+			p.printFetchInfo(plan.Trigger)
+			p.depth--
+			p.print("},") // Primary
+			if hasChildren {
+				p.print("Rest: {")
+				p.depth++
+			}
+		}
+
+		isSequence := len(plan.Children) > 1
+		if isSequence {
+			p.print("Sequence {")
+		}
+		for _, child := range plan.Children {
+			p.printPlanNode(child, isSequence)
+		}
+		if isSequence {
+			p.print("}")
+		}
+
+		if isSubscription {
+			if hasChildren {
+				p.depth--
+				p.print("},") // Rest
+			}
+			p.depth--
+			p.print("}") // Subscription
+		}
+	case FetchTreeNodeKindParallel:
+		p.print("Parallel {")
+		for _, child := range plan.Children {
+			p.printPlanNode(child, true)
+		}
+		p.print("}")
+	}
+	if increaseDepth {
+		p.depth--
+	}
+}
+
+func (p *PlanPrinter) printFetchInfo(fetch *FetchTreeQueryPlan) {
+	nested := strings.Contains(fetch.Path, ".")
+
+	if nested {
+		p.print(fmt.Sprintf(`Flatten(path: "%s") {`, fetch.Path))
+		p.depth++
+	}
+	p.print(fmt.Sprintf(`Fetch(service: "%s") {`, fetch.SubgraphName))
+	p.depth++
+
+	if fetch.Representations != nil {
+		p.printRepresentations(fetch.Representations)
+	}
+	p.printQuery(fetch.Query)
+
+	p.depth--
+	p.print("}")
+	if nested {
+		p.depth--
+		p.print("}")
+	}
+}
+
+// printQuery replaces the first line of a query with "{" and prints into p.
+// It expects a multi-line formatted query. As a fallback for a single-line query,
+// it will print such a query as it is.
+func (p *PlanPrinter) printQuery(query string) {
+	if query == "" {
+		return
+	}
+	lines := strings.Split(query, "\n")
+	if len(lines) == 1 {
+		p.print(query)
+		return
+	}
+	lines[0] = "{"
+	lines[len(lines)-1] = "}"
+	p.print(lines...)
+}
+
+func (p *PlanPrinter) printRepresentations(reps []Representation) {
+	p.print("{")
+	p.depth++
+	for _, rep := range reps {
+		lines := strings.Split(rep.Fragment, "\n")
+		p.print(lines...)
+	}
+	p.depth--
+	p.print("} =>")
+}
+
+func (p *PlanPrinter) print(lines ...string) {
+	for _, l := range lines {
+		p.buf.WriteString(fmt.Sprintf("%s%s\n", strings.Repeat("  ", p.depth), l))
+	}
+}
