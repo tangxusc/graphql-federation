@@ -4,4 +4,5 @@ use (
 	.
 	./graphql-go-tools-v2
 	./graphql-go-tools-execution
+	./composition-go
 )
