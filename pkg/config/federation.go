@@ -8,6 +8,7 @@ import (
 	"github.com/wundergraph/graphql-go-tools/execution/engine"
 	"github.com/wundergraph/graphql-go-tools/v2/pkg/engine/resolve"
 
+	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
 	"github.com/higress-group/wasm-go/pkg/wrapper"
 	"github.com/tidwall/gjson"
 )
@@ -47,7 +48,15 @@ func parseFederationConfig(json gjson.Result, config *FederationConfig) error {
 	}
 	config.Ctx, config.CancelFunc = context.WithCancel(context.TODO())
 
-	var subgraphsConfigs []engine.SubgraphConfiguration
+	var subgraphsConfigs []engine.SubgraphConfiguration = make([]engine.SubgraphConfiguration, 1)
+	subgraphsConfigs[0] = engine.SubgraphConfiguration{
+		Name:                 "test",
+		URL:                  "http://httpbin",
+		SDL:                  "",
+		SubscriptionUrl:      "",
+		SubscriptionProtocol: engine.SubscriptionProtocolWS,
+	}
+
 	//TODO: http client
 	//clusterClient := wrapper.NewClusterClient(wrapper.FQDNCluster{
 	//	FQDN: serviceName,
@@ -60,12 +69,14 @@ func parseFederationConfig(json gjson.Result, config *FederationConfig) error {
 	)
 	engineConfig, err := config.EngineConfigFactory.BuildEngineConfiguration()
 	if err != nil {
+		proxywasm.LogErrorf("build engine configuration error:%v", err)
 		return err
 	}
 	config.ExecutionEngine, err = engine.NewExecutionEngine(config.Ctx, config.Logger, engineConfig, resolve.ResolverOptions{
 		MaxConcurrency: 1024,
 	})
 	if err != nil {
+		proxywasm.LogErrorf("new execution engine error:%v", err)
 		return err
 	}
 	return nil
