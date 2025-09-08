@@ -1,6 +1,8 @@
 # Higress GraphQL Federation 插件
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE) 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wundergraph/graphql-go-tools)
+
 
 一个基于 WebAssembly 的 Higress GraphQL Federation 插件。
 

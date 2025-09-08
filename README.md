@@ -1,6 +1,8 @@
 # Higress GraphQL Federation Plugin
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wundergraph/graphql-go-tools)
+
 
 A GraphQL Federation plugin for Higress based on WebAssembly.
 
