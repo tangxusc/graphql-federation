@@ -68,3 +68,16 @@ static_resources:
               socket_address:
                 address: httpbin
                 port_value: 80
+  - name: outbound|80||httpbin
+    connect_timeout: 300s
+    type: STATIC
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: outbound|80||httpbin
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 80

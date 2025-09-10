@@ -7,6 +7,6 @@ import (
 )
 
 func init() {
-	//config.RegisterCtxOption(wrapper.ProcessRequestHeaders(onHttpRequestHeaders))
+	config.RegisterCtxOption(wrapper.ProcessRequestHeaders(onHttpRequestHeaders))
 	config.RegisterCtxOption(wrapper.ProcessRequestBody(processRequestBody))
 }

@@ -1,10 +1,11 @@
-package config
+package process
 
 import (
 	"bytes"
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
 	"github.com/higress-group/wasm-go/pkg/wrapper"
@@ -24,7 +25,7 @@ func (h HttpClientRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	}
 	proxywasm.LogDebugf("host:%v,port:%v,method:%s,url:%s", req.Host, port, req.Method, req.URL.Path)
 	client := wrapper.NewClusterClient(wrapper.FQDNCluster{
-		FQDN: req.Host,
+		FQDN: "httpbin",
 		Port: port,
 	})
 
@@ -35,17 +36,17 @@ func (h HttpClientRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	response := new(http.Response)
 	response.Request = req
 
-	//TODO:如何处理异步?
-	doneRequest := make(chan interface{})
-	go client.Call(req.Method, req.URL.Path, nil, body, func(statusCode int, responseHeaders http.Header, responseBody []byte) {
-		proxywasm.LogDebugf("statusCode:%v,header:%+v,responseBody:%s", statusCode, responseHeaders, responseBody)
-		response.Body = newResponse(responseBody)
-		response.Header = responseHeaders
-		response.Status = strconv.Itoa(statusCode)
-		response.StatusCode = statusCode
-		close(doneRequest)
-	})
-	<-doneRequest
+	client.Call(req.Method, req.URL.Path, nil, body,
+		func(statusCode int, responseHeaders http.Header, responseBody []byte) {
+			proxywasm.LogDebugf("statusCode:%v,header:%+v,responseBody:%s", statusCode, responseHeaders, responseBody)
+			response.Body = newResponse(responseBody)
+			response.Header = responseHeaders
+			response.Status = strconv.Itoa(statusCode)
+			response.StatusCode = statusCode
+		})
+		
+	time.Sleep(time.Second * 5)
+	proxywasm.LogDebugf("返回数据:%+v", response)
 	return response, nil
 }
 

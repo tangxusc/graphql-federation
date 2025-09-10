@@ -1,8 +1,6 @@
 package process
 
 import (
-	"encoding/json"
-
 	"github.com/tangxusc/higress-graphql-federation/pkg/config"
 
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
@@ -11,18 +9,7 @@ import (
 )
 
 func onHttpRequestHeaders(ctx wrapper.HttpContext, cfg config.FederationConfig) types.Action {
-	d, err := json.Marshal(cfg)
-	if err != nil {
-		proxywasm.LogError(err.Error())
-
-	} else {
-		proxywasm.LogInfof("config:%s \n", string(d))
-
-	}
-	proxywasm.LogError("onHttpRequestHeaders")
+	proxywasm.LogDebug("onHttpRequestHeaders...")
 	//proxywasm.AddHttpRequestHeader("hello", "world")
-	// if cfg.MockEnable {
-	// 	proxywasm.SendHttpResponse(200, nil, []byte("hello world"), -1)
-	// }
-	return types.HeaderContinue
+	return types.HeaderStopIteration
 }
