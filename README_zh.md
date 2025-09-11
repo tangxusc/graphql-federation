@@ -69,7 +69,7 @@ curl -X POST http://localhost:10000/graphql \
   }'
 
 # 查看日志
-docker logs scripts-envoy-1
+docker logs -f scripts-envoy-1
 
 # 停止服务
 docker-compose -f scripts/docker-compose.yaml down

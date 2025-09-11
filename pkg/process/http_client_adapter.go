@@ -44,8 +44,8 @@ func (h HttpClientRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 			response.Status = strconv.Itoa(statusCode)
 			response.StatusCode = statusCode
 		})
-		
-	time.Sleep(time.Second * 5)
+
+	time.Sleep(time.Second * 10)
 	proxywasm.LogDebugf("返回数据:%+v", response)
 	return response, nil
 }

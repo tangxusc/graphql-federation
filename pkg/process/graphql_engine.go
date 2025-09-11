@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/higress-group/proxy-wasm-go-sdk/proxywasm"
+	"github.com/higress-group/wasm-go/pkg/wrapper"
 	"github.com/tangxusc/higress-graphql-federation/pkg/config"
 	"github.com/wundergraph/graphql-go-tools/execution/engine"
 	"github.com/wundergraph/graphql-go-tools/v2/pkg/engine/resolve"
@@ -17,7 +18,14 @@ var EngineConfigFactory *engine.FederationEngineConfigFactory
 var ExecutionEngine *engine.ExecutionEngine
 var lock sync.RWMutex
 
-func initGraphqlFederationEngine(config config.FederationConfig) error {
+func init() {
+	config.RegisterTicker(func(cfg *config.FederationConfig) {
+		wrapper.RegisterTickFunc(1000, func() {
+			InitGraphqlFederationEngine(cfg)
+		})
+	})
+}
+func InitGraphqlFederationEngine(config *config.FederationConfig) error {
 	lock.Lock()
 	defer lock.Unlock()
 	if EngineConfigFactory != nil && ExecutionEngine != nil {
@@ -27,7 +35,7 @@ func initGraphqlFederationEngine(config config.FederationConfig) error {
 	var subgraphsConfigs []engine.SubgraphConfiguration = make([]engine.SubgraphConfiguration, 1)
 	subgraphsConfigs[0] = engine.SubgraphConfiguration{
 		Name:                 "test",
-		URL:                  "http://httpbin",
+		URL:                  "httpbin",
 		SDL:                  "",
 		SubscriptionUrl:      "",
 		SubscriptionProtocol: engine.SubscriptionProtocolWS,
