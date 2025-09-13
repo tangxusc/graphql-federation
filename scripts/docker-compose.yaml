@@ -20,7 +20,7 @@ services:
     networks:
     - wasmtest
     ports:
-    - "12345:80"
+    - "80:80"
 
 networks:
   wasmtest: {}
