@@ -4,7 +4,7 @@ services:
     image: higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/gateway:v2.1.5
     entrypoint: /usr/local/bin/envoy
     # 注意这里对wasm开启了debug级别日志，正式部署时则默认info级别
-    command: -c /etc/envoy/envoy.yaml --component-log-level wasm:debug
+    command: -c /etc/envoy/envoy.yaml --component-log-level golang:debug
     depends_on:
     - httpbin
     networks:
@@ -13,7 +13,7 @@ services:
     - "10000:10000"
     volumes:
     - ./envoy.yaml:/etc/envoy/envoy.yaml
-    - ../build/graphql-federation.wasm:/etc/envoy/graphql-federation.wasm
+    - ../build/graphql-federation_arm64.so:/etc/envoy/graphql-federation_arm64.so
 
   httpbin:
     image: kennethreitz/httpbin:latest

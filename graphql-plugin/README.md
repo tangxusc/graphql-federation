@@ -1,6 +1,6 @@
 # Higress GraphQL Federation Plugin
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wundergraph/graphql-go-tools)
 
 
@@ -106,4 +106,4 @@ Example configuration:
 
 ## License
 
-This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](../LICENSE) for details.

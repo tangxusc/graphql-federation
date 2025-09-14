@@ -1,6 +1,6 @@
 # Higress GraphQL Federation 插件
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE) 
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE) 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wundergraph/graphql-go-tools)
 
 
@@ -106,4 +106,4 @@ docker-compose -f scripts/docker-compose.yaml down
 
 ## 许可证
 
-本项目采用 Apache License 2.0 许可证。详见 [LICENSE](LICENSE)。
+本项目采用 Apache License 2.0 许可证。详见 [LICENSE](../LICENSE)。

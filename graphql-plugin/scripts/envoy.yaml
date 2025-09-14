@@ -31,24 +31,16 @@ static_resources:
                 route:
                   cluster: httpbin
           http_filters:
-          - name: higress-graphql-federation
+          - name: envoy.filters.http.golang
             typed_config:
-              "@type": type.googleapis.com/udpa.type.v1.TypedStruct
-              type_url: type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
-              value:
-                config:
-                  name: higress-graphql-federation
-                  vm_config:
-                    runtime: envoy.wasm.runtime.v8
-                    code:
-                      local:
-                        filename: /etc/envoy/graphql-federation.wasm
-                  configuration:
-                    "@type": "type.googleapis.com/google.protobuf.StringValue"
-                    value: |
-                      {
-                        "mockEnable": false
-                      }
+              "@type": type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.Config
+              library_id: graphql-federation
+              library_path: "/etc/envoy/graphql-federation_arm64.so"
+              plugin_name: graphql-federation
+              plugin_config:
+                "@type": type.googleapis.com/xds.type.v3.TypedStruct
+                value:
+                  prefix_localreply_body: "Configured local reply from1231231 go"
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
