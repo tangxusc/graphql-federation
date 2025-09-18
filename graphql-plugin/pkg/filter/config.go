@@ -2,10 +2,12 @@ package filter
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
 	xds "github.com/cncf/xds/go/xds/type/v3"
+	"github.com/wundergraph/graphql-go-tools/execution/engine"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/envoyproxy/envoy/contrib/golang/common/go/api"
@@ -13,13 +15,15 @@ import (
 
 const Name = "graphql-federation"
 
-type graphqlFederationConfig struct {
-	graphqlPath        string
-	graphqlContextType string
-	graphqlMethod      string
+type SubgraphConfiguration struct {
+	ServiceName          string                      `json:"ServiceName"`
+	GraphqlUrl           string                      `json:"GraphqlUrl"`
+	SubscriptionProtocol engine.SubscriptionProtocol `json:"SubscriptionProtocol"`
+	SubscriptionURL      string                      `json:"SubscriptionURL"`
+}
 
-	echoBody string
-	// other fields
+type graphqlFederationConfig struct {
+	SubGraphqlConfig []*SubgraphConfiguration
 }
 
 type GraphqlFederationPluginConfigParser struct {
@@ -35,14 +39,22 @@ func (p *GraphqlFederationPluginConfigParser) Parse(any *anypb.Any, callbacks ap
 
 	v := configStruct.Value
 	conf := &graphqlFederationConfig{}
-	prefix, ok := v.AsMap()["prefix_localreply_body"]
+
+	// 解析SubGraphqlConfig配置
+	subGraphqlConfig, ok := v.AsMap()["SubGraphqlConfig"]
 	if !ok {
-		return nil, errors.New("missing prefix_localreply_body")
+		return nil, errors.New("missing SubGraphqlConfig")
 	}
-	if str, ok := prefix.(string); ok {
-		conf.echoBody = str
-	} else {
-		return nil, fmt.Errorf("prefix_localreply_body: expect string while got %T", prefix)
+
+	// 将配置转换为JSON再解析到结构体中
+	jsonData, err := json.Marshal(subGraphqlConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal SubGraphqlConfig: %v", err)
+	}
+
+	err = json.Unmarshal(jsonData, &conf.SubGraphqlConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal SubGraphqlConfig: %v", err)
 	}
 
 	api.LogDebugf("[graphql-federation] 解析配置完成...")
@@ -58,8 +70,8 @@ func (p *GraphqlFederationPluginConfigParser) Merge(parent interface{}, child in
 
 	// copy one, do not update parentConfig directly.
 	newConfig := *parentConfig
-	if childConfig.echoBody != "" {
-		newConfig.echoBody = childConfig.echoBody
+	if childConfig.SubGraphqlConfig != nil {
+		newConfig.SubGraphqlConfig = childConfig.SubGraphqlConfig
 	}
 	api.LogDebugf("[graphql-federation] 解析 新的 配置完成...")
 	g := &newConfig

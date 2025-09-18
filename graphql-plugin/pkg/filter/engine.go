@@ -34,13 +34,15 @@ func start(ctx context.Context) {
 
 func updateGraphqlEngine(ctx context.Context, cfg *graphqlFederationConfig) {
 	api.LogDebugf("[graphql-federation] 更新graphql engine...")
-	var subgraphsConfigs = make([]engine.SubgraphConfiguration, 1)
-	subgraphsConfigs[0] = engine.SubgraphConfiguration{
-		Name:                 "httpbin",
-		URL:                  "",
-		SDL:                  "",
-		SubscriptionUrl:      "",
-		SubscriptionProtocol: engine.SubscriptionProtocolWS,
+	var subgraphsConfigs = make([]engine.SubgraphConfiguration, len(cfg.SubGraphqlConfig), len(cfg.SubGraphqlConfig))
+	for i, configuration := range cfg.SubGraphqlConfig {
+		subgraphsConfigs[i] = engine.SubgraphConfiguration{
+			Name:                 configuration.ServiceName,
+			URL:                  configuration.GraphqlUrl,
+			SDL:                  "",
+			SubscriptionUrl:      configuration.GraphqlUrl,
+			SubscriptionProtocol: engine.SubscriptionProtocolWS,
+		}
 	}
 	client := http.DefaultClient
 	client.Timeout = time.Second * 1

@@ -29,7 +29,7 @@ func (f *GraphqlFederationFilter) sendLocalReplyInternal() api.StatusType {
 	api.LogErrorf("get baidu error: %v", err)
 	api.LogErrorf("get baidu response: %v", response)
 
-	body := fmt.Sprintf("%s, path: %s\r\n", f.config.echoBody, f.config.graphqlPath)
+	body := fmt.Sprintf("%s, path: %s\r\n", "1", "2")
 	f.callbacks.DecoderFilterCallbacks().SendLocalReply(200, body, nil, 0, "")
 	// Remember to return LocalReply when the request is replied locally
 	return api.LocalReply

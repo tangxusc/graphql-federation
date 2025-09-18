@@ -41,6 +41,13 @@ static_resources:
                 "@type": type.googleapis.com/xds.type.v3.TypedStruct
                 value:
                   prefix_localreply_body: "Configured local reply from1231231 go"
+                  SubGraphqlConfig:
+                    - ServiceName: 'httpbin'
+                      GraphqlUrl: 'http://192.168.2.13:4001/graphql'
+                      SubscriptionUrl: 'ws://192.168.2.13:4001/graphql'
+                    - ServiceName: 'httpbin2'
+                      GraphqlUrl: 'http://192.168.2.13:4002/graphql'
+                      SubscriptionUrl: 'ws://192.168.2.13:4002/graphql'
           - name: envoy.filters.http.router
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -60,16 +67,3 @@ static_resources:
               socket_address:
                 address: httpbin
                 port_value: 80
-  - name: outbound|80||httpbin
-    connect_timeout: 300s
-    type: STATIC
-    lb_policy: ROUND_ROBIN
-    load_assignment:
-      cluster_name: outbound|80||httpbin
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: 127.0.0.1
-                port_value: 10000

@@ -3,12 +3,12 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wundergraph/graphql-go-tools)
 
-
 A GraphQL Federation plugin for Higress based on WebAssembly.
 
 ## Overview
 
-This project implements a GraphQL Federation plugin for Higress, which is a cloud-native API gateway based on Envoy. The plugin is written in Go and compiled to WebAssembly (WASM) for execution within the Envoy proxy.
+This project implements a GraphQL Federation plugin for Higress, which is a cloud-native API gateway based on Envoy. The
+plugin is written in Go and compiled to WebAssembly (WASM) for execution within the Envoy proxy.
 
 ## Features
 
@@ -62,11 +62,7 @@ docker-compose -f scripts/docker-compose.yaml up -d
 docker-compose -f scripts/docker-compose.yaml ps
 
 # Send a GraphQL request
-curl -X POST http://localhost:10000/graphql \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "{ users { id name } products { id name price } }"
-  }'
+curl -X POST -H "Content-Type: application/json" --data '{"query":"{ user(id: \"1\") { id name email orders { id product amount status } } }"}' http://localhost:10000/graphql
 
 # Check logs
 docker logs scripts-envoy-1
@@ -80,6 +76,7 @@ docker-compose -f scripts/docker-compose.yaml down
 The plugin can be configured through the Envoy configuration. See `scripts/envoy.yaml` for an example configuration.
 
 Example configuration:
+
 ```yaml
 - name: envoy.filters.http.wasm
   config:
