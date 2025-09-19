@@ -87,16 +87,8 @@ func (f *GraphqlFederationFilter) DecodeData(buffer api.BufferInstance, endStrea
 	buf := bytes.NewBuffer(make([]byte, 0, 4096))
 	var opts []engine.ExecutionOptions
 
-	tracingOpts := resolve.TraceOptions{
-		Enable:                                 true,
-		ExcludePlannerStats:                    false,
-		ExcludeRawInputData:                    false,
-		ExcludeInput:                           false,
-		ExcludeOutput:                          false,
-		ExcludeLoadStats:                       false,
-		EnablePredictableDebugTimings:          false,
-		IncludeTraceOutputInResponseExtensions: true,
-	}
+	tracingOpts := resolve.TraceOptions{}
+	tracingOpts.EnableAll()
 
 	opts = append(opts, engine.WithRequestTraceOptions(tracingOpts))
 	resultWriter := graphql.NewEngineResultWriterFromBuffer(buf)

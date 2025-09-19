@@ -16,16 +16,17 @@ var engineConfigFactory *engine.FederationEngineConfigFactory
 var logger abstractlogger.Logger = &GraphqlFederationLoggerAdapter{}
 var executionEngine *engine.ExecutionEngine
 
-func start(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute * 5)
+func start(ctx context.Context, current *graphqlFederationConfig) {
+	ticker := time.NewTicker(current.SchemaRefreshInterval)
 	var lastCfg *graphqlFederationConfig
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case cfg := <-configUpdateCh:
-			updateGraphqlEngine(ctx, cfg)
 			lastCfg = cfg
+			updateGraphqlEngine(ctx, lastCfg)
+			ticker.Reset(lastCfg.SchemaRefreshInterval)
 		case <-ticker.C:
 			updateGraphqlEngine(ctx, lastCfg)
 		}
@@ -45,7 +46,7 @@ func updateGraphqlEngine(ctx context.Context, cfg *graphqlFederationConfig) {
 		}
 	}
 	client := http.DefaultClient
-	client.Timeout = time.Second * 1
+	client.Timeout = cfg.SchemaRefreshTimeout
 	engineConfigFactory = engine.NewFederationEngineConfigFactory(
 		ctx,
 		subgraphsConfigs,

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	xds "github.com/cncf/xds/go/xds/type/v3"
 	"github.com/wundergraph/graphql-go-tools/execution/engine"
@@ -23,7 +24,9 @@ type SubgraphConfiguration struct {
 }
 
 type graphqlFederationConfig struct {
-	SubGraphqlConfig []*SubgraphConfiguration
+	SubGraphqlConfig      []*SubgraphConfiguration
+	SchemaRefreshInterval time.Duration
+	SchemaRefreshTimeout  time.Duration
 }
 
 type GraphqlFederationPluginConfigParser struct {
@@ -38,7 +41,10 @@ func (p *GraphqlFederationPluginConfigParser) Parse(any *anypb.Any, callbacks ap
 	}
 
 	v := configStruct.Value
-	conf := &graphqlFederationConfig{}
+	conf := &graphqlFederationConfig{
+		SchemaRefreshInterval: time.Minute * 5,
+		SchemaRefreshTimeout:  time.Minute * 1,
+	}
 
 	// 解析SubGraphqlConfig配置
 	subGraphqlConfig, ok := v.AsMap()["SubGraphqlConfig"]
@@ -57,8 +63,33 @@ func (p *GraphqlFederationPluginConfigParser) Parse(any *anypb.Any, callbacks ap
 		return nil, fmt.Errorf("failed to unmarshal SubGraphqlConfig: %v", err)
 	}
 
+	refreshInterval, ok := v.AsMap()["SchemaRefreshInterval"]
+	if ok {
+		refreshIntervalString, ok := refreshInterval.(string)
+		if !ok {
+			return nil, fmt.Errorf("SchemaRefreshInterval must be a string(like 1s, 1m, 1h)")
+		}
+		refreshIntervalDuration, err := time.ParseDuration(refreshIntervalString)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse SchemaRefreshInterval: %v", err)
+		}
+		conf.SchemaRefreshInterval = refreshIntervalDuration
+	}
+	refreshTimeout, ok := v.AsMap()["SchemaRefreshTimeout"]
+	if ok {
+		refreshTimeoutString, ok := refreshTimeout.(string)
+		if !ok {
+			return nil, fmt.Errorf("SchemaRefreshTimeout must be a string(like 1s, 1m, 1h)")
+		}
+		refreshTimeoutDuration, err := time.ParseDuration(refreshTimeoutString)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse SchemaRefreshTimeout: %v", err)
+		}
+		conf.SchemaRefreshTimeout = refreshTimeoutDuration
+	}
+
 	api.LogDebugf("[graphql-federation] 解析配置完成...")
-	go start(context.TODO())
+	go start(context.TODO(), conf)
 	configUpdateCh <- conf
 	return conf, nil
 }
