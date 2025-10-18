@@ -17,16 +17,16 @@ import (
 const Name = "graphql-federation"
 
 type SubgraphConfiguration struct {
-	ServiceName          string                      `json:"ServiceName"`
-	GraphqlUrl           string                      `json:"GraphqlUrl"`
-	SubscriptionProtocol engine.SubscriptionProtocol `json:"SubscriptionProtocol"`
-	SubscriptionURL      string                      `json:"SubscriptionURL"`
+	ServiceName          string                      `json:"service_name"`
+	GraphqlUrl           string                      `json:"graphql_url"`
+	SubscriptionProtocol engine.SubscriptionProtocol `json:"subscription_protocol"`
+	SubscriptionURL      string                      `json:"subscription_url"`
 }
 
 type graphqlFederationConfig struct {
-	SubGraphqlConfig      []*SubgraphConfiguration
-	SchemaRefreshInterval time.Duration
-	SchemaRefreshTimeout  time.Duration
+	SubGraphqlConfig      []*SubgraphConfiguration `json:"sub_graphql_config"`
+	SchemaRefreshInterval time.Duration             `json:"schema_refresh_interval"`
+	SchemaRefreshTimeout  time.Duration             `json:"schema_refresh_timeout"`
 }
 
 type GraphqlFederationPluginConfigParser struct {
@@ -47,43 +47,43 @@ func (p *GraphqlFederationPluginConfigParser) Parse(any *anypb.Any, callbacks ap
 	}
 
 	// 解析SubGraphqlConfig配置
-	subGraphqlConfig, ok := v.AsMap()["SubGraphqlConfig"]
+	subGraphqlConfig, ok := v.AsMap()["sub_graphql_config"]
 	if !ok {
-		return nil, errors.New("missing SubGraphqlConfig")
+		return nil, errors.New("missing sub_graphql_config")
 	}
 
 	// 将配置转换为JSON再解析到结构体中
 	jsonData, err := json.Marshal(subGraphqlConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal SubGraphqlConfig: %v", err)
+		return nil, fmt.Errorf("failed to marshal sub_graphql_config: %v", err)
 	}
 
 	err = json.Unmarshal(jsonData, &conf.SubGraphqlConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal SubGraphqlConfig: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal sub_graphql_config: %v", err)
 	}
 
-	refreshInterval, ok := v.AsMap()["SchemaRefreshInterval"]
+	refreshInterval, ok := v.AsMap()["schema_refresh_interval"]
 	if ok {
 		refreshIntervalString, ok := refreshInterval.(string)
 		if !ok {
-			return nil, fmt.Errorf("SchemaRefreshInterval must be a string(like 1s, 1m, 1h)")
+			return nil, fmt.Errorf("schema_refresh_interval must be a string(like 1s, 1m, 1h)")
 		}
 		refreshIntervalDuration, err := time.ParseDuration(refreshIntervalString)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse SchemaRefreshInterval: %v", err)
+			return nil, fmt.Errorf("failed to parse schema_refresh_interval: %v", err)
 		}
 		conf.SchemaRefreshInterval = refreshIntervalDuration
 	}
-	refreshTimeout, ok := v.AsMap()["SchemaRefreshTimeout"]
+	refreshTimeout, ok := v.AsMap()["schema_refresh_timeout"]
 	if ok {
 		refreshTimeoutString, ok := refreshTimeout.(string)
 		if !ok {
-			return nil, fmt.Errorf("SchemaRefreshTimeout must be a string(like 1s, 1m, 1h)")
+			return nil, fmt.Errorf("schema_refresh_timeout must be a string(like 1s, 1m, 1h)")
 		}
 		refreshTimeoutDuration, err := time.ParseDuration(refreshTimeoutString)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse SchemaRefreshTimeout: %v", err)
+			return nil, fmt.Errorf("failed to parse schema_refresh_timeout: %v", err)
 		}
 		conf.SchemaRefreshTimeout = refreshTimeoutDuration
 	}

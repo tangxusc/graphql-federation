@@ -3,12 +3,12 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wundergraph/graphql-go-tools)
 
-A GraphQL Federation plugin for Higress based on WebAssembly.
+A GraphQL Federation plugin for Higress based on Go filter.
 
 ## Overview
 
 This project implements a GraphQL Federation plugin for Higress, which is a cloud-native API gateway based on Envoy. The
-plugin is written in Go and compiled to WebAssembly (WASM) for execution within the Envoy proxy.
+plugin is written in Go and compiled as a shared library (.so) for execution within the Envoy proxy using the Go filter extension.
 
 ## Features
 
@@ -16,39 +16,42 @@ plugin is written in Go and compiled to WebAssembly (WASM) for execution within 
 - Integration with Higress gateway
 - Plugin-based architecture for easy extension
 - Support for routing, rate limiting, and authentication of GraphQL requests
-- WASM-based implementation for high performance and security
+- Go-based implementation for high performance and security
+- Support for GraphQL subscriptions via WebSocket
 
 ## Project Structure
 
 ```
-.
+graphql-plugin/
 ├── cmd/
 │   └── graphql/              # Plugin main entry point
-├── graphql-go-tools-execution/ # GraphQL execution engine
-├── graphql-go-tools-v2/      # GraphQL tools v2
 ├── pkg/
-│   ├── config/               # Configuration management
-│   └── process/              # Request processing logic
+│   └── filter/               # Filter implementation
+│       ├── config.go         # Configuration management
+│       ├── filter.go         # Main filter logic
+│       ├── engine.go         # GraphQL execution engine
+│       └── types.go          # Type definitions
 ├── scripts/                  # Testing and deployment scripts
-├── Makefile                  # Build instructions
+│   ├── envoy.yaml           # Envoy configuration example
+│   └── docker-compose.yaml  # Test environment setup
 └── README.md                 # Project documentation
 ```
 
 ## Prerequisites
 
-- Go 1.24+
+- Go 1.21+
 - Make
 - Docker (for testing)
 
 ## Building
 
-To build the WASM module:
+To build the Go filter shared library:
 
 ```bash
 make build
 ```
 
-This will produce a `build/graphql-federation.wasm` file that can be loaded into Envoy.
+This will produce a `build/graphql-federation_arm64.so` file that can be loaded into Envoy.
 
 ## Testing
 
@@ -56,50 +59,55 @@ To test the plugin locally:
 
 ```bash
 # Start services using Docker Compose
-docker-compose -f scripts/docker-compose.yaml up -d
-
-# Check service status
-docker-compose -f scripts/docker-compose.yaml ps
+make test-up
 
 # Send a GraphQL request
-curl -X POST -H "Content-Type: application/json" --data '{"query":"{ user(id: \"1\") { id name email orders { id product amount status } } }"}' http://localhost:10000/graphql
+curl -X POST -H "Content-Type: application/json" \
+  --data '{"query":"{ users { id name } products { id name price } }"}' \
+  http://localhost:10000/graphql
 
 # Check logs
-docker logs scripts-envoy-1
+docker logs -f scripts-envoy-1
 
 # Stop services
-docker-compose -f scripts/docker-compose.yaml down
+make test-down
 ```
 
 ## Configuration
 
-The plugin can be configured through the Envoy configuration. See `scripts/envoy.yaml` for an example configuration.
+The plugin can be configured through the Envoy configuration using the Go filter extension. See `scripts/envoy.yaml` for an example configuration.
 
 Example configuration:
 
 ```yaml
-- name: envoy.filters.http.wasm
-  config:
-    config:
-      name: "higress-graphql-federation"
-      root_id: "higress-graphql-federation"
-      vm_config:
-        runtime: "envoy.wasm.runtime.v8"
-        code:
-          local:
-            filename: "/etc/envoy/graphql-federation.wasm"
-      configuration:
-        "@type": "type.googleapis.com/google.protobuf.StringValue"
-        value: |
-          {
-            "enableQueryPlanning": true,
-            "enableCaching": true,
-            "maxQueryDepth": 10,
-            "queryTimeout": 5000,
-            "enableIntrospection": true,
-            "graphqlAddress": "http://graphql-service"
-          }
+- name: envoy.filters.http.golang
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.Config
+    library_id: graphql-federation
+    library_path: "/etc/envoy/graphql-federation_arm64.so"
+    plugin_name: graphql-federation
+    plugin_config:
+      "@type": type.googleapis.com/xds.type.v3.TypedStruct
+      value:
+        sub_graphql_config:
+          - service_name: 'service1'
+            graphql_url: 'http://service1:4001/graphql'
+            subscription_url: 'ws://service1:4001/graphql'
+          - service_name: 'service2'
+            graphql_url: 'http://service2:4002/graphql'
+            subscription_url: 'ws://service2:4002/graphql'
+        schema_refresh_interval: "5m"
+        schema_refresh_timeout: "1m"
 ```
+
+### Configuration Fields
+
+- `sub_graphql_config`: Array of subgraph configurations
+  - `service_name`: Name of the GraphQL service
+  - `graphql_url`: HTTP endpoint for GraphQL queries
+  - `subscription_url`: WebSocket endpoint for GraphQL subscriptions
+- `schema_refresh_interval`: How often to refresh the federated schema (default: 5m)
+- `schema_refresh_timeout`: Timeout for schema refresh operations (default: 1m)
 
 ## License
 
