@@ -1,0 +1,259 @@
+name: Hotfix Pipeline
+
+on:
+  push:
+    branches:
+      - 'hotfix/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Hotfix version (e.g., v1.0.1)'
+        required: true
+        type: string
+      severity:
+        description: 'Severity level'
+        required: true
+        default: 'medium'
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - critical
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    name: Test Hotfix Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: |
+          cd graphql-plugin
+          go mod download
+
+      - name: Run tests
+        run: |
+          cd graphql-plugin
+          go test -v ./...
+
+      - name: Run linting
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          cd graphql-plugin
+          golangci-lint run
+
+      - name: Run security scan
+        run: |
+          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          cd graphql-plugin
+          gosec ./...
+
+  build-and-push:
+    name: Build and Push Hotfix Image
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from branch or input
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(echo ${{ github.ref_name }} | sed 's/hotfix\///')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.version }}-amd64
+            type=raw,value=${{ steps.version.outputs.version }}-arm64
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image (AMD64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GO_FILTER_NAME=graphql-federation
+            GOARCH=amd64
+            GOPROXY=https://proxy.golang.org,direct
+
+      - name: Build and push Docker image (ARM64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GO_FILTER_NAME=graphql-federation
+            GOARCH=arm64
+            GOPROXY=https://proxy.golang.org,direct
+
+      - name: Build and push multi-arch manifest
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GO_FILTER_NAME=graphql-federation
+            GOARCH=amd64
+            GOPROXY=https://proxy.golang.org,direct
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  create-release:
+    name: Create Hotfix Release
+    runs-on: ubuntu-latest
+    needs: [test, build-and-push, security-scan]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(echo ${{ github.ref_name }} | sed 's/hotfix\///')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate hotfix changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline --pretty=format:"- %s" HEAD)
+          else
+            COMMITS=$(git log --oneline --pretty=format:"- %s" $LAST_TAG..HEAD)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Hotfix Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: 🚨 Hotfix Release ${{ steps.version.outputs.version }}
+          body: |
+            ## 🚨 Hotfix Release
+            
+            **Severity:** ${{ github.event.inputs.severity || 'medium' }}
+            
+            ## Changes in this Hotfix
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Docker Images
+            
+            - `ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}`
+            - `ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}-amd64`
+            - `ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}-arm64`
+            
+            ## Usage
+            
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            ```
+            
+            ## ⚠️ Important
+            
+            This is a hotfix release. Please test thoroughly before deploying to production.
+          draft: false
+          prerelease: false
+
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: create-release
+    if: always()
+    steps:
+      - name: Notify on success
+        if: needs.create-release.result == 'success'
+        run: |
+          echo "✅ Hotfix release ${{ steps.version.outputs.version }} has been successfully created and deployed!"
+          
+      - name: Notify on failure
+        if: needs.create-release.result == 'failure'
+        run: |
+          echo "❌ Hotfix release failed! Please check the logs and retry."
+          exit 1

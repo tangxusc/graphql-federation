@@ -1,0 +1,60 @@
+name: Develop Branch CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  test:
+    name: Test Develop Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: |
+          cd graphql-plugin
+          go mod download
+
+      - name: Run tests
+        run: |
+          cd graphql-plugin
+          go test -v ./...
+
+      - name: Run linting
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          cd graphql-plugin
+          golangci-lint run
+
+      - name: Check code coverage
+        run: |
+          cd graphql-plugin
+          go test -coverprofile=coverage.out ./...
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report-develop
+          path: graphql-plugin/coverage.html

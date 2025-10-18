@@ -1,0 +1,98 @@
+name: Dependency Updates
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_go_modules:
+        description: 'Update Go modules'
+        required: true
+        default: true
+        type: boolean
+      create_pr:
+        description: 'Create Pull Request automatically'
+        required: true
+        default: false
+        type: boolean
+      target_branch:
+        description: 'Target branch for PR'
+        required: true
+        default: 'develop'
+        type: choice
+        options:
+          - develop
+          - main
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Update Go modules
+        if: ${{ github.event.inputs.update_go_modules == 'true' }}
+        run: |
+          cd graphql-plugin
+          go get -u ./...
+          go mod tidy
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: ${{ github.event.inputs.create_pr == 'true' && steps.changes.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update dependencies'
+          title: 'chore: update dependencies'
+          body: |
+            This PR updates Go dependencies to their latest versions.
+            
+            ## Changes
+            - Updated Go modules in `graphql-plugin/`
+            - Ran `go mod tidy` to clean up dependencies
+            
+            ## Testing
+            Please ensure all tests pass before merging.
+            
+            ## Manual Review Required
+            ⚠️ **This dependency update requires manual review before merging.**
+            
+            Please review the changes and test thoroughly.
+          branch: chore/update-dependencies-${{ github.run_number }}
+          delete-branch: true
+          labels: |
+            dependencies
+            manual-review
+          assignees: ${{ github.actor }}
+
+      - name: Show changes summary
+        if: steps.changes.outputs.changed == 'true' && github.event.inputs.create_pr == 'false'
+        run: |
+          echo "## 📋 Dependency Update Summary"
+          echo ""
+          echo "The following changes were detected:"
+          echo ""
+          git diff --stat
+          echo ""
+          echo "### Detailed Changes:"
+          echo ""
+          git diff
+          echo ""
+          echo "⚠️ **Manual Review Required**"
+          echo "Please review these changes and create a Pull Request manually if needed."
