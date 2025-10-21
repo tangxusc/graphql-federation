@@ -24,13 +24,11 @@ RUN if [ "$GOARCH" = "arm64" ]; then \
 WORKDIR /workspace
 COPY . .
 
-RUN pwd && ls -la
-
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
-        CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared ./cmd/graphql; \
+       pwd && ls -la CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared /workspace/graphql-plugin/cmd/graphql; \
     else \
-        CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared ./cmd/graphql; \
+        pwd && ls -la && CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared /workspace/graphql-plugin/cmd/graphql; \
     fi
 
 FROM higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/gateway:latest
