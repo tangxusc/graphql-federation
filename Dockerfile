@@ -1,5 +1,5 @@
 #FROM golang:1.22-bullseye AS golang-base
-FROM golang:1.23-bullseye AS golang-base
+FROM docker.io/library/golang:1.23-bullseye AS golang-base
 
 ARG GOPROXY=https://proxy.golang.org,direct
 ARG GO_FILTER_NAME=graphql-federation
@@ -26,9 +26,9 @@ COPY . .
 
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
-        CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        pwd && CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
     else \
-        CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        pwd && CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
     fi
 
 FROM higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/gateway:latest
