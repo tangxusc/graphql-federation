@@ -26,7 +26,7 @@ COPY . .
 
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
-        CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared ./graphql-plugin/cmd/graphql/; \
+        CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
     else \
         CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
     fi
