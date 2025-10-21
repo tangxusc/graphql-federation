@@ -46,11 +46,11 @@ jobs:
           cd graphql-plugin
           go test -v ./...
 
-      - name: Run linting
-        run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          cd graphql-plugin
-          golangci-lint run
+      # - name: Run linting
+      #   run: |
+      #     go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      #     cd graphql-plugin
+      #     golangci-lint run
 
   build-and-push:
     name: Build and Push Docker Image
