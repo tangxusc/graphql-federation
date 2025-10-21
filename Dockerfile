@@ -24,6 +24,8 @@ RUN if [ "$GOARCH" = "arm64" ]; then \
 WORKDIR /workspace
 COPY . .
 
+RUN pwd && ls -la
+
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
         pwd && cd /workspace/graphql-plugin && CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
