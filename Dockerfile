@@ -26,9 +26,9 @@ COPY . .
 
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
-        pwd && CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        pwd && cd /workspace/graphql-plugin && CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
     else \
-        pwd && CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        pwd && cd /workspace/graphql-plugin && CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
     fi
 
 FROM higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/gateway:latest
