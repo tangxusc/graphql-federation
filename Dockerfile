@@ -26,7 +26,7 @@ COPY . .
 
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
-       pwd && ls -la CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared /workspace/graphql-plugin/cmd/graphql; \
+       pwd && ls -la && CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared /workspace/graphql-plugin/cmd/graphql; \
     else \
         pwd && ls -la && CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared /workspace/graphql-plugin/cmd/graphql; \
     fi
