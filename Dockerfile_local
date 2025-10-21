@@ -31,7 +31,7 @@ RUN if [ "$GOARCH" = "arm64" ]; then \
         CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
     fi
 
-FROM higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/gateway:latest
+FROM scratch AS output
 ARG GO_FILTER_NAME=graphql-federation
 ARG GOARCH=arm64
-COPY --from=golang-base /${GO_FILTER_NAME}.so /var/lib/istio/envoy/${GO_FILTER_NAME}_${GOARCH}.so
+COPY --from=golang-base /${GO_FILTER_NAME}.so ${GO_FILTER_NAME}_${GOARCH}.so

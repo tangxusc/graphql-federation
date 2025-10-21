@@ -2,10 +2,30 @@ GO_FILTER_NAME ?= graphql-federation
 GOPROXY := $(shell go env GOPROXY)
 GOARCH ?= arm64
 BUILD_DIR := build
+IMAGE_TAG ?= latest
 
-.PHONY: all build clean
+.PHONY: all build-local build-image clean test-up test-down
 
-all: build
+all: build-local
+
+# 本地测试环境：复制so文件到宿主机
+build-local:
+	DOCKER_BUILDKIT=1 docker build --build-arg GOPROXY=$(GOPROXY) \
+								    --build-arg GO_FILTER_NAME=${GO_FILTER_NAME} \
+									--build-arg GOARCH=${GOARCH} \
+									-t ${GO_FILTER_NAME}-local \
+									--output ./graphql-plugin/build/ \
+									-f Dockerfile_local \
+									.
+
+# 其他环境：直接打包为镜像
+build-image:
+	DOCKER_BUILDKIT=1 docker build --build-arg GOPROXY=$(GOPROXY) \
+								    --build-arg GO_FILTER_NAME=${GO_FILTER_NAME} \
+									--build-arg GOARCH=${GOARCH} \
+									-t ${GO_FILTER_NAME}:${IMAGE_TAG} \
+									-f Dockerfile \
+									.
 
 test-up:
 	docker-compose -f graphql-plugin/scripts/docker-compose.yaml up -d
@@ -17,11 +37,3 @@ test-down:
 
 clean:
 	rm -rf $(BUILD_DIR)
-
-build:
-	DOCKER_BUILDKIT=1 docker build --build-arg GOPROXY=$(GOPROXY) \
-								    --build-arg GO_FILTER_NAME=${GO_FILTER_NAME} \
-									--build-arg GOARCH=${GOARCH} \
-									-t ${GO_FILTER_NAME} \
-									--output ./graphql-plugin/build/ \
-									.
