@@ -24,14 +24,16 @@ RUN if [ "$GOARCH" = "arm64" ]; then \
 WORKDIR /workspace
 COPY . .
 
+RUN pwd && ls -la
+
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
-        CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared ./cmd/graphql; \
     else \
-        CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared ./cmd/graphql; \
     fi
 
 FROM scratch AS output
 ARG GO_FILTER_NAME=graphql-federation
 ARG GOARCH=arm64
-COPY --from=golang-base /${GO_FILTER_NAME}.so ${GO_FILTER_NAME}_${GOARCH}.so
+COPY --from=golang-base /tmp/plugin.so ${GO_FILTER_NAME}_${GOARCH}.so

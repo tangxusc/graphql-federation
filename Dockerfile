@@ -28,12 +28,12 @@ RUN pwd && ls -la
 
 RUN cd ./graphql-plugin && go mod tidy
 RUN if [ "$GOARCH" = "arm64" ]; then \
-        pwd && cd /workspace/graphql-plugin && CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        CC=aarch64-linux-gnu-gcc AS=aarch64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared ./cmd/graphql; \
     else \
-        pwd && cd /workspace/graphql-plugin && CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /$GO_FILTER_NAME.so -buildmode=c-shared .; \
+        CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared ./cmd/graphql; \
     fi
 
 FROM higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/gateway:latest
 ARG GO_FILTER_NAME=graphql-federation
 ARG GOARCH=arm64
-COPY --from=golang-base /${GO_FILTER_NAME}.so /var/lib/istio/envoy/${GO_FILTER_NAME}_${GOARCH}.so
+COPY --from=golang-base /tmp/plugin.so /var/lib/istio/envoy/${GO_FILTER_NAME}_${GOARCH}.so
