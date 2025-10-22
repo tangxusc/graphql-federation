@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/envoyproxy/envoy/contrib/golang/common/go/api"
 	"github.com/wundergraph/graphql-go-tools/execution/engine"
@@ -16,12 +17,23 @@ import (
 
 var filterInstance *GraphqlFederationFilter
 
+// 支持的 GraphQL Content-Type 格式
+var graphqlContentTypes = []string{
+	"application/json",
+	"application/graphql",
+	"application/graphql+json",
+	"application/graphql-request+json",
+	"application/vnd.graphql+json",
+	"application/vnd.graphql",
+}
+
 type GraphqlFederationFilter struct {
 	api.PassThroughStreamFilter
 
 	callbacks api.FilterCallbackHandler
 	config    *graphqlFederationConfig
 	bodys     []byte
+	isGraphQL bool // 标记是否为 GraphQL 请求
 }
 
 func (f *GraphqlFederationFilter) sendLocalReplyInternal() api.StatusType {
@@ -38,40 +50,35 @@ func (f *GraphqlFederationFilter) sendLocalReplyInternal() api.StatusType {
 // Callbacks which are called in request path
 // The endStream is true if the request doesn't have body
 func (f *GraphqlFederationFilter) DecodeHeaders(header api.RequestHeaderMap, endStream bool) api.StatusType {
-	//path := header.Path()
-	//method := header.Method()
-	//api.LogDebugf("[graphql-federation]request.path:%s,method:%s", path, method)
-	//if method != "POST" {
-	//	api.LogDebugf("[graphql-federation]request.method:%s is not POST, skip graphql filter", method)
-	//	return api.Continue
-	//}
-	//
-	//if f.path == "/localreply_by_config" {
-	//	return f.sendLocalReplyInternal()
-	//}
-	api.LogDebugf("[graphql-federation] 进入 decode header...")
+	path := header.Path()
+	method := header.Method()
+	contentType, _ := header.Get("Content-Type")
+
+	api.LogDebugf("[graphql-federation] request.path:%s, method:%s, contentType:%s", path, method, contentType)
+
+	// 检查是否为 GraphQL 请求
+	f.isGraphQL = f.isGraphQLRequest(method, path, contentType)
+
+	if !f.isGraphQL {
+		api.LogDebugf("[graphql-federation] 非 GraphQL 请求，跳过处理: path=%s, method=%s", path, method)
+		return api.Continue
+	}
+
+	api.LogDebugf("[graphql-federation] GraphQL 请求，开始处理")
 	return api.Continue
-	/*
-		// If the code is time-consuming, to avoid blocking the Envoy,
-		// we need to run the code in a background goroutine
-		// and suspend & resume the GraphqlFederationFilter
-		go func() {
-			defer f.callbacks.DecoderFilterCallbacks().RecoverPanic()
-			// do time-consuming jobs
-
-			// resume the GraphqlFederationFilter
-			f.callbacks.DecoderFilterCallbacks().Continue(status)
-		}()
-
-		// suspend the GraphqlFederationFilter
-		return api.Running
-	*/
 }
 
 // DecodeData might be called multiple times during handling the request body.
 // The endStream is true when handling the last piece of the body.
 func (f *GraphqlFederationFilter) DecodeData(buffer api.BufferInstance, endStream bool) api.StatusType {
 	api.LogDebugf("[graphql-federation] 进入 decode data,endStream:%v", endStream)
+
+	// 如果不是 GraphQL 请求，直接跳过处理
+	if !f.isGraphQL {
+		api.LogDebugf("[graphql-federation] 非 GraphQL 请求，跳过数据处理")
+		return api.Continue
+	}
+
 	var gqlRequest graphql.Request
 	var err error
 	f.bodys = append(f.bodys, buffer.Bytes()...)
@@ -99,7 +106,7 @@ func (f *GraphqlFederationFilter) DecodeData(buffer api.BufferInstance, endStrea
 		return f.sendLocalResponse(resultWriter.Bytes())
 	}
 	// support suspending & resuming the GraphqlFederationFilter in a background goroutine
-	return api.Continue
+
 }
 
 func (f *GraphqlFederationFilter) DecodeTrailers(trailers api.RequestTrailerMap) api.StatusType {
@@ -187,7 +194,27 @@ func (f *GraphqlFederationFilter) OnDestroy(reason api.DestroyReason) {
 }
 
 func (f *GraphqlFederationFilter) sendError(err error) api.StatusType {
-	f.callbacks.DecoderFilterCallbacks().SendLocalReply(501, err.Error(), nil, 0, "")
+	payload := map[string]interface{}{
+		"data": nil,
+		"errors": []map[string]interface{}{
+			{
+				"message":    err.Error(),
+				"extensions": map[string]interface{}{"code": "INTERNAL_SERVER_ERROR"},
+			},
+		},
+	}
+	body, marshalErr := json.Marshal(payload)
+	if marshalErr != nil {
+		// 兜底：如果序列化失败，仍然返回简单错误信息
+		f.callbacks.DecoderFilterCallbacks().SendLocalReply(200, "{\"data\":null,\"errors\":[{\"message\":\"internal error\"}]}", map[string][]string{
+			"Content-Type": {"application/json; charset=utf-8"},
+		}, 0, "")
+		return api.LocalReply
+	}
+
+	f.callbacks.DecoderFilterCallbacks().SendLocalReply(200, string(body), map[string][]string{
+		"Content-Type": {"application/json; charset=utf-8"},
+	}, 0, "")
 	return api.LocalReply
 }
 
@@ -200,6 +227,38 @@ func NewGraphqlFederationFilter(cfg *graphqlFederationConfig, callbacks api.Filt
 	api.LogDebugf("[graphql-federation] 创建graphql federation filter...")
 	filterInstance = &GraphqlFederationFilter{
 		callbacks: callbacks,
+		isGraphQL: false, // 初始化为 false
 	}
 	return filterInstance
+}
+
+// isGraphQLRequest 判断请求是否为 GraphQL 请求
+func (f *GraphqlFederationFilter) isGraphQLRequest(method, path, contentType string) bool {
+	// GraphQL 请求必须满足以下条件：
+	// 1. 路径严格为 /graphql
+	// 2. POST 请求且 Content-Type 为 GraphQL 相关格式
+
+	if path != "/graphql" {
+		return false
+	}
+
+	if method == "POST" {
+		// 检查 Content-Type 是否为 GraphQL 相关格式
+		contentType = strings.ToLower(strings.TrimSpace(contentType))
+
+		// 精确匹配
+		for _, ct := range graphqlContentTypes {
+			if contentType == ct {
+				return true
+			}
+		}
+
+		// 模糊匹配（包含关键字）
+		if strings.Contains(contentType, "application/json") ||
+			strings.Contains(contentType, "application/graphql") {
+			return true
+		}
+	}
+
+	return false
 }
