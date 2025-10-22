@@ -1,54 +1,58 @@
 name: GitHub Actions Status
 
 on:
+  # 当 "CI/CD Pipeline" 完成时触发
   workflow_run:
-    workflows: ["CI/CD Pipeline", "Feature Branch CI", "Release Pipeline", "Hotfix Pipeline", "Develop Branch CI"]
-    types: [completed]
+    workflows: ["CI/CD Pipeline"]
+    types:
+      - completed
+
+  # 手动触发（便于调试）
+  workflow_dispatch: {}
 
 jobs:
-  update-status:
+  status:
+    name: GitHub Actions Status
     runs-on: ubuntu-latest
-    if: github.event.workflow_run != null && github.event.workflow_run.conclusion != 'skipped'
-    permissions:
-      contents: write
-      statuses: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Update README badges
+      - name: Create status check
+        # 仅在事件确实为 workflow_run 且 payload 包含 workflow_run 时执行
+        if: ${{ github.event_name == 'workflow_run' && contains(toJSON(github.event), 'workflow_run') }}
         uses: actions/github-script@v7
         with:
           script: |
-            // Check if workflow_run exists and has the expected properties
-            if (!github.event.workflow_run) {
-              console.log('Error: workflow_run is undefined');
+            const core = require('@actions/core');
+
+            // actions/github-script 在上下文里注入了 `github` 和 `context`
+            if (!context || !context.payload || !context.payload.workflow_run) {
+              core.info(`workflow_run is undefined for event: ${context ? context.eventName : 'unknown'}`);
               return;
             }
-            
-            const workflowRun = github.event.workflow_run;
-            console.log('Workflow completed:', workflowRun.conclusion);
-            console.log('Workflow name:', workflowRun.name);
-            console.log('Workflow status:', workflowRun.status);
-            console.log('Workflow URL:', workflowRun.html_url);
-            
-            // Create a status check for the workflow
+
+            const run = context.payload.workflow_run;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = run.head_sha;
+
+            // 将 workflow_run.conclusion 映射到 commit status 的 state
+            let state = 'pending';
+            const conclusion = run.conclusion;
+            if (conclusion === 'success') state = 'success';
+            else if (conclusion === 'failure' || conclusion === 'cancelled' || conclusion === 'timed_out') state = 'failure';
+            else if (conclusion === 'neutral') state = 'success';
+
+            const statusContext = `status/${(run.name || 'workflow').toLowerCase().replace(/\s+/g, '-')}`;
+
             try {
               await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: workflowRun.head_sha,
-                state: workflowRun.conclusion === 'success' ? 'success' : 'failure',
-                description: `${workflowRun.name}: ${workflowRun.conclusion}`,
-                context: `status/${workflowRun.name.toLowerCase().replace(/\s+/g, '-')}`,
-                target_url: workflowRun.html_url
+                owner,
+                repo,
+                sha,
+                state,
+                context: statusContext,
+                target_url: run.html_url
               });
-              console.log('Status check created successfully');
+              core.info('Status check created successfully');
             } catch (error) {
-              console.log('Error creating status check:', error.message);
+              core.setFailed(`Error creating status check: ${error.message}`);
             }
-            
-            // This is a placeholder for future badge updates
-            // You can add logic here to update README badges based on workflow results
