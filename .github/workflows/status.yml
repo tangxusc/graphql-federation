@@ -2,17 +2,53 @@ name: GitHub Actions Status
 
 on:
   workflow_run:
-    workflows: ["CI/CD Pipeline", "Feature Branch CI", "Release Pipeline", "Hotfix Pipeline"]
+    workflows: ["CI/CD Pipeline", "Feature Branch CI", "Release Pipeline", "Hotfix Pipeline", "Develop Branch CI"]
     types: [completed]
 
 jobs:
   update-status:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion != 'skipped'
+    if: github.event.workflow_run != null && github.event.workflow_run.conclusion != 'skipped'
+    permissions:
+      contents: write
+      statuses: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Update README badges
         uses: actions/github-script@v7
         with:
           script: |
+            // Check if workflow_run exists and has the expected properties
+            if (!github.event.workflow_run) {
+              console.log('Error: workflow_run is undefined');
+              return;
+            }
+            
+            const workflowRun = github.event.workflow_run;
+            console.log('Workflow completed:', workflowRun.conclusion);
+            console.log('Workflow name:', workflowRun.name);
+            console.log('Workflow status:', workflowRun.status);
+            console.log('Workflow URL:', workflowRun.html_url);
+            
+            // Create a status check for the workflow
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: workflowRun.head_sha,
+                state: workflowRun.conclusion === 'success' ? 'success' : 'failure',
+                description: `${workflowRun.name}: ${workflowRun.conclusion}`,
+                context: `status/${workflowRun.name.toLowerCase().replace(/\s+/g, '-')}`,
+                target_url: workflowRun.html_url
+              });
+              console.log('Status check created successfully');
+            } catch (error) {
+              console.log('Error creating status check:', error.message);
+            }
+            
             // This is a placeholder for future badge updates
-            console.log('Workflow completed:', github.event.workflow_run.conclusion);
+            // You can add logic here to update README badges based on workflow results
