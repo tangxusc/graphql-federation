@@ -1,0 +1,26 @@
+version: '3.7'
+services:
+  envoy:
+    image: docker.io/istio/proxyv2:1.27.3
+    entrypoint: /usr/local/bin/envoy
+    # 注意这里对wasm开启了debug级别日志，正式部署时则默认info级别
+    command: -c /etc/envoy/envoy.yaml --component-log-level golang:debug
+    depends_on:
+    - httpbin
+    networks:
+    - graphql-federation
+    ports:
+    - "10000:10000"
+    volumes:
+    - ./envoy.yaml:/etc/envoy/envoy.yaml
+    - ../build/graphql-federation_arm64.so:/etc/envoy/graphql-federation_arm64.so
+
+  httpbin:
+    image: kennethreitz/httpbin:latest
+    networks:
+    - graphql-federation
+    ports:
+    - "80:80"
+
+networks:
+  graphql-federation: {}
