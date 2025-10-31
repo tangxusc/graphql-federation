@@ -50,24 +50,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd graphql-plugin
           go mod download
 
       - name: Run tests
         run: |
-          cd graphql-plugin
           go test -v ./...
 
       - name: Run linting
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          cd graphql-plugin
           golangci-lint run
 
       - name: Run security scan
         run: |
           go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-          cd graphql-plugin
           gosec ./...
 
   build-and-push:

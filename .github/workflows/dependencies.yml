@@ -40,7 +40,6 @@ jobs:
       - name: Update Go modules
         if: ${{ github.event.inputs.update_go_modules == 'true' }}
         run: |
-          cd graphql-plugin
           go get -u ./...
           go mod tidy
 
