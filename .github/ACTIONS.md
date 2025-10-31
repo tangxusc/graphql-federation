@@ -17,8 +17,8 @@
 - 📦 **仅 main 分支**: 推送到 GitHub Container Registry
 
 **镜像标签 (仅 main 分支):**
-- `ghcr.io/用户名/higress-graphql-federation:main`
-- `ghcr.io/用户名/higress-graphql-federation:latest`
+- `ghcr.io/用户名/graphql-federation:main`
+- `ghcr.io/用户名/graphql-federation:latest`
 
 ### 1.1. Develop 分支 CI (`develop-ci.yml`)
 
@@ -44,8 +44,8 @@
 - 🧪 集成测试
 
 **镜像标签:**
-- `ghcr.io/用户名/higress-graphql-federation:feature-分支名`
-- `ghcr.io/用户名/higress-graphql-federation:分支名-commit-hash`
+- `ghcr.io/用户名/graphql-federation:feature-分支名`
+- `ghcr.io/用户名/graphql-federation:分支名-commit-hash`
 
 ### 3. Release 分支发布 (`release.yml`)
 
@@ -61,9 +61,9 @@
 - 📋 生成变更日志
 
 **镜像标签:**
-- `ghcr.io/用户名/higress-graphql-federation:v1.0.0`
-- `ghcr.io/用户名/higress-graphql-federation:v1.0.0-amd64`
-- `ghcr.io/用户名/higress-graphql-federation:v1.0.0-arm64`
+- `ghcr.io/用户名/graphql-federation:v1.0.0`
+- `ghcr.io/用户名/graphql-federation:v1.0.0-amd64`
+- `ghcr.io/用户名/graphql-federation:v1.0.0-arm64`
 
 ### 4. Hotfix 分支紧急修复 (`hotfix.yml`)
 
@@ -79,9 +79,9 @@
 - 🔔 团队通知
 
 **镜像标签:**
-- `ghcr.io/用户名/higress-graphql-federation:v1.0.1`
-- `ghcr.io/用户名/higress-graphql-federation:v1.0.1-amd64`
-- `ghcr.io/用户名/higress-graphql-federation:v1.0.1-arm64`
+- `ghcr.io/用户名/graphql-federation:v1.0.1`
+- `ghcr.io/用户名/graphql-federation:v1.0.1-amd64`
+- `ghcr.io/用户名/graphql-federation:v1.0.1-arm64`
 
 ### 5. 依赖更新 (`dependencies.yml`)
 
@@ -135,14 +135,14 @@
 
 ```bash
 # 拉取最新版本
-docker pull ghcr.io/用户名/higress-graphql-federation:latest
+docker pull ghcr.io/用户名/graphql-federation:latest
 
 # 拉取特定版本
-docker pull ghcr.io/用户名/higress-graphql-federation:v1.0.0
+docker pull ghcr.io/用户名/graphql-federation:v1.0.0
 
 # 拉取特定架构
-docker pull ghcr.io/用户名/higress-graphql-federation:v1.0.0-amd64
-docker pull ghcr.io/用户名/higress-graphql-federation:v1.0.0-arm64
+docker pull ghcr.io/用户名/graphql-federation:v1.0.0-amd64
+docker pull ghcr.io/用户名/graphql-federation:v1.0.0-arm64
 ```
 
 ### 使用镜像
@@ -150,9 +150,9 @@ docker pull ghcr.io/用户名/higress-graphql-federation:v1.0.0-arm64
 ```bash
 # 运行容器
 docker run -d \
-  --name higress-graphql-federation \
+  --name graphql-federation \
   -p 8080:8080 \
-  ghcr.io/用户名/higress-graphql-federation:latest
+  ghcr.io/用户名/graphql-federation:latest
 ```
 
 ## 权限配置

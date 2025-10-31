@@ -1,8 +1,6 @@
-module github.com/tangxusc/higress-graphql-federation/graphql-plugin
+module github.com/tangxusc/graphql-federation/graphql-plugin
 
 go 1.25
-
-// replace github.com/envoyproxy/envoy => github.com/higress-group/envoy v0.0.0-20250430151331-2c556780b65c
 
 replace github.com/mark3labs/mcp-go => github.com/higress-group/mcp-go v0.0.0-20250428145706-792ce64b4b30
 
@@ -64,9 +62,3 @@ require (
 )
 
 replace github.com/nacos-group/nacos-sdk-go/v2 v2.2.9 => github.com/luoxiner/nacos-sdk-go/v2 v2.2.9-40
-
-// replace github.com/wundergraph/graphql-go-tools/v2 => ../graphql-go-tools-v2
-
-// replace github.com/wundergraph/graphql-go-tools/execution => ../graphql-go-tools-execution
-
-// replace github.com/wundergraph/cosmo/composition-go => ../composition-go
