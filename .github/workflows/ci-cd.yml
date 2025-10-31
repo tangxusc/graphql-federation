@@ -38,12 +38,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd graphql-plugin
           go mod download
 
       - name: Run tests
         run: |
-          cd graphql-plugin
           go test -v ./...
 
       # - name: Run linting

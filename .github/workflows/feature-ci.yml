@@ -35,23 +35,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd graphql-plugin
           go mod download
 
       - name: Run tests
         run: |
-          cd graphql-plugin
           go test -v ./...
 
       - name: Run linting
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          cd graphql-plugin
           golangci-lint run
 
       - name: Check code coverage
         run: |
-          cd graphql-plugin
           go test -coverprofile=coverage.out ./...
           go tool cover -html=coverage.out -o coverage.html
 
@@ -59,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report
-          path: graphql-plugin/coverage.html
+          path: coverage.html
 
   build-test:
     name: Build Test Image
@@ -121,7 +117,7 @@ jobs:
 
       - name: Start test environment
         run: |
-          cd graphql-plugin/scripts
+          cd ./scripts
           docker-compose up -d
           sleep 30
 
@@ -138,5 +134,5 @@ jobs:
       - name: Cleanup test environment
         if: always()
         run: |
-          cd graphql-plugin/scripts
+          cd ./scripts
           docker-compose down -v
