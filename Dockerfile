@@ -1,5 +1,4 @@
-#FROM golang:1.22-bullseye AS golang-base
-FROM docker.io/library/golang:1.23-bullseye AS golang-base
+FROM docker.io/library/golang:1.25.3-trixie AS golang-base
 
 ARG GOPROXY=https://proxy.golang.org,direct
 ARG GO_FILTER_NAME=graphql-federation
@@ -31,7 +30,7 @@ RUN if [ "$GOARCH" = "arm64" ]; then \
         pwd && ls -la && CC=x86_64-linux-gnu-gcc AS=x86_64-linux-gnu-as go build -o /tmp/plugin.so -buildmode=c-shared /workspace/cmd/graphql; \
     fi
 
-FROM higress-registry.cn-hangzhou.cr.aliyuncs.com/higress/gateway:latest
+FROM docker.io/istio/proxyv2:1.27.3
 ARG GO_FILTER_NAME=graphql-federation
 ARG GOARCH=arm64
 COPY --from=golang-base /tmp/plugin.so /var/lib/istio/envoy/${GO_FILTER_NAME}_${GOARCH}.so

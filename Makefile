@@ -13,7 +13,7 @@ build-local:
 	DOCKER_BUILDKIT=1 docker build --build-arg GOPROXY=$(GOPROXY) \
 								    --build-arg GO_FILTER_NAME=${GO_FILTER_NAME} \
 									--build-arg GOARCH=${GOARCH} \
-									-t ${GO_FILTER_NAME}-local \
+									-t ${GO_FILTER_NAME}:local \
 									--output ./build/ \
 									-f Dockerfile_local \
 									.
@@ -30,7 +30,7 @@ build-image:
 test-up:
 	docker-compose -f scripts/docker-compose.yaml up -d
 	docker-compose -f scripts/docker-compose.yaml ps
-	docker logs -f scripts-envoy-1
+	docker logs -f scripts_envoy_1
 
 test-down:
 	docker-compose -f scripts/docker-compose.yaml down

@@ -21,7 +21,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const core = require('@actions/core');
+            //const core = require('@actions/core');
 
             // actions/github-script 在上下文里注入了 `github` 和 `context`
             if (!context || !context.payload || !context.payload.workflow_run) {
