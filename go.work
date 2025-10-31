@@ -1,8 +1,0 @@
-go 1.23.0
-
-use (
-	./composition-go
-	./graphql-go-tools-execution
-	./graphql-go-tools-v2
-	./graphql-plugin
-)

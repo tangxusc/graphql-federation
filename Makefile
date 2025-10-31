@@ -14,7 +14,7 @@ build-local:
 								    --build-arg GO_FILTER_NAME=${GO_FILTER_NAME} \
 									--build-arg GOARCH=${GOARCH} \
 									-t ${GO_FILTER_NAME}-local \
-									--output ./graphql-plugin/build/ \
+									--output ./build/ \
 									-f Dockerfile_local \
 									.
 
@@ -28,12 +28,12 @@ build-image:
 									.
 
 test-up:
-	docker-compose -f graphql-plugin/scripts/docker-compose.yaml up -d
-	docker-compose -f graphql-plugin/scripts/docker-compose.yaml ps
+	docker-compose -f scripts/docker-compose.yaml up -d
+	docker-compose -f scripts/docker-compose.yaml ps
 	docker logs -f scripts-envoy-1
 
 test-down:
-	docker-compose -f graphql-plugin/scripts/docker-compose.yaml down
+	docker-compose -f scripts/docker-compose.yaml down
 
 clean:
 	rm -rf $(BUILD_DIR)
