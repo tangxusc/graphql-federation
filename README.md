@@ -1,15 +1,16 @@
-# Higress GraphQL Federation
+# GraphQL Federation
 
 <div align="center">
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.22+-blue.svg)](https://golang.org/)
+
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/tangxusc/higress-graphql-federation)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tangxusc/higress-graphql-federation)](https://goreportcard.com/report/github.com/tangxusc/higress-graphql-federation)
 [![GitHub stars](https://img.shields.io/github/stars/tangxusc/higress-graphql-federation.svg)](https://github.com/tangxusc/higress-graphql-federation/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/tangxusc/higress-graphql-federation.svg)](https://github.com/tangxusc/higress-graphql-federation/network)
 
-**A high-performance GraphQL Federation plugin for Higress API Gateway**
+**A high-performance GraphQL Federation Envoy Go filter for Istio proxyv2**
 
 [English](#english) | [中文](#中文)
 
@@ -21,13 +22,13 @@
 
 ### Overview
 
-Higress GraphQL Federation is a comprehensive solution that provides GraphQL Federation capabilities for the Higress API Gateway. Built on top of the powerful `graphql-go-tools` library, this project enables seamless integration of multiple GraphQL services into a unified federated GraphQL API.
+GraphQL Federation is a comprehensive solution that provides GraphQL Federation capabilities for Istio proxyv2 (Envoy). Built on top of the powerful `graphql-go-tools` library, this project enables seamless integration of multiple GraphQL services into a unified federated GraphQL API.
 
 ### Key Features
 
 - 🚀 **High Performance**: Built with Go for optimal performance and low latency
 - 🔗 **GraphQL Federation**: Seamlessly combine multiple GraphQL services
-- 🌐 **Higress Integration**: Native integration with Higress API Gateway
+- 🌐 **Istio proxyv2 Integration**: Runs as an Envoy Go filter within Istio proxyv2
 - 🔌 **Plugin Architecture**: Extensible plugin-based design
 - 📡 **WebSocket Support**: Full support for GraphQL subscriptions
 - 🛡️ **Security**: Built-in authentication and authorization support
@@ -39,8 +40,8 @@ Higress GraphQL Federation is a comprehensive solution that provides GraphQL Fed
 This project consists of several key components:
 
 ```
-higress-graphql-federation/
-├── graphql-plugin/              # Main Higress plugin implementation
+graphql-federation/
+├── graphql-plugin/              # Envoy Golang HTTP filter implementation
 │   ├── cmd/graphql/             # Plugin entry point
 │   ├── pkg/filter/              # Core filter logic
 │   └── scripts/                 # Deployment and testing scripts
@@ -129,7 +130,7 @@ Configure the plugin through Envoy's Go filter extension:
 
 #### Project Structure
 
-- **graphql-plugin/**: Main plugin implementation for Higress
+- **graphql-plugin/**: Envoy Golang HTTP filter implementation for Istio proxyv2
 - **graphql-go-tools-v2/**: Core GraphQL parsing, validation, and execution library
 - **graphql-go-tools-execution/**: GraphQL execution engine with federation support
 - **composition-go/**: Federation composition and router configuration utilities
@@ -152,13 +153,13 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ### 概述
 
-Higress GraphQL Federation 是一个为 Higress API 网关提供 GraphQL Federation 功能的综合解决方案。基于强大的 `graphql-go-tools` 库构建，该项目能够将多个 GraphQL 服务无缝集成到统一的联邦 GraphQL API 中。
+GraphQL Federation 是一个基于 Istio proxyv2（Envoy）的 GraphQL 联邦能力解决方案。依托强大的 `graphql-go-tools` 库构建，该项目能够将多个 GraphQL 服务无缝集成到统一的联邦 GraphQL API 中。
 
 ### 核心特性
 
 - 🚀 **高性能**: 使用 Go 构建，具有最佳性能和低延迟
 - 🔗 **GraphQL 联邦**: 无缝组合多个 GraphQL 服务
-- 🌐 **Higress 集成**: 与 Higress API 网关原生集成
+- 🌐 **Istio proxyv2 集成**: 作为 Envoy Go 过滤器运行于 Istio proxyv2 中
 - 🔌 **插件架构**: 可扩展的基于插件的设计
 - 📡 **WebSocket 支持**: 完整支持 GraphQL 订阅
 - 🛡️ **安全性**: 内置认证和授权支持
@@ -170,8 +171,8 @@ Higress GraphQL Federation 是一个为 Higress API 网关提供 GraphQL Federat
 该项目由几个关键组件组成：
 
 ```
-higress-graphql-federation/
-├── graphql-plugin/              # 主要的 Higress 插件实现
+graphql-federation/
+├── graphql-plugin/              # Envoy Golang HTTP 过滤器实现
 │   ├── cmd/graphql/             # 插件入口点
 │   ├── pkg/filter/              # 核心过滤器逻辑
 │   └── scripts/                 # 部署和测试脚本
@@ -260,7 +261,7 @@ make test-down
 
 #### 项目结构
 
-- **graphql-plugin/**: Higress 的主要插件实现
+- **graphql-plugin/**: 面向 Istio proxyv2 的 Envoy Golang HTTP 过滤器实现
 - **graphql-go-tools-v2/**: 核心 GraphQL 解析、验证和执行库
 - **graphql-go-tools-execution/**: 支持联邦的 GraphQL 执行引擎
 - **composition-go/**: 联邦组合和路由器配置工具
