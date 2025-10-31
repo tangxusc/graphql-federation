@@ -41,14 +41,27 @@ This project consists of several key components:
 
 ```
 graphql-federation/
-├── graphql-plugin/              # Envoy Golang HTTP filter implementation
-│   ├── cmd/graphql/             # Plugin entry point
-│   ├── pkg/filter/              # Core filter logic
-│   └── scripts/                 # Deployment and testing scripts
-├── graphql-go-tools-v2/         # Core GraphQL tools library
-├── graphql-go-tools-execution/  # GraphQL execution engine
-├── composition-go/              # Federation composition utilities
-└── Dockerfile                   # Container build configuration
+├── cmd/
+│   └── graphql/
+│       └── graphql-federation.go
+├── pkg/
+│   └── filter/
+│       ├── config.go
+│       ├── engine.go
+│       ├── filter.go
+│       ├── logger_adapter.go
+│       ├── register_filter.go
+│       └── types.go
+├── scripts/
+│   ├── docker-compose.yaml
+│   └── envoy.yaml
+├── Dockerfile
+├── Dockerfile_local
+├── go.mod
+├── go.sum
+├── Makefile
+├── LICENSE
+└── README.md
 ```
 
 ### Quick Start
@@ -172,14 +185,27 @@ GraphQL Federation 是一个基于 Istio proxyv2（Envoy）的 GraphQL 联邦能
 
 ```
 graphql-federation/
-├── graphql-plugin/              # Envoy Golang HTTP 过滤器实现
-│   ├── cmd/graphql/             # 插件入口点
-│   ├── pkg/filter/              # 核心过滤器逻辑
-│   └── scripts/                 # 部署和测试脚本
-├── graphql-go-tools-v2/         # 核心 GraphQL 工具库
-├── graphql-go-tools-execution/  # GraphQL 执行引擎
-├── composition-go/              # 联邦组合工具
-└── Dockerfile                   # 容器构建配置
+├── cmd/
+│   └── graphql/
+│       └── graphql-federation.go
+├── pkg/
+│   └── filter/
+│       ├── config.go
+│       ├── engine.go
+│       ├── filter.go
+│       ├── logger_adapter.go
+│       ├── register_filter.go
+│       └── types.go
+├── scripts/
+│   ├── docker-compose.yaml
+│   └── envoy.yaml
+├── Dockerfile
+├── Dockerfile_local
+├── go.mod
+├── go.sum
+├── Makefile
+├── LICENSE
+└── README.md
 ```
 
 ### 快速开始
