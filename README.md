@@ -5,10 +5,10 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.25+-blue.svg)](https://golang.org/)
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/tangxusc/higress-graphql-federation)
-[![Go Report Card](https://goreportcard.com/badge/github.com/tangxusc/higress-graphql-federation)](https://goreportcard.com/report/github.com/tangxusc/higress-graphql-federation)
-[![GitHub stars](https://img.shields.io/github/stars/tangxusc/higress-graphql-federation.svg)](https://github.com/tangxusc/higress-graphql-federation/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/tangxusc/higress-graphql-federation.svg)](https://github.com/tangxusc/higress-graphql-federation/network)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/tangxusc/graphql-federation)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tangxusc/graphql-federation)](https://goreportcard.com/report/github.com/tangxusc/graphql-federation)
+[![GitHub stars](https://img.shields.io/github/stars/tangxusc/graphql-federation.svg)](https://github.com/tangxusc/graphql-federation/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/tangxusc/graphql-federation.svg)](https://github.com/tangxusc/graphql-federation/network)
 
 **A high-performance GraphQL Federation Envoy Go filter for Istio proxyv2**
 
@@ -75,8 +75,8 @@ graphql-federation/
 
 ```bash
 # Clone the repository
-git clone https://github.com/tangxusc/higress-graphql-federation.git
-cd higress-graphql-federation
+git clone https://github.com/tangxusc/graphql-federation.git
+cd graphql-federation
 
 # Build the GraphQL Federation plugin
 make build-local
@@ -221,8 +221,8 @@ graphql-federation/
 
 ```bash
 # 克隆仓库
-git clone https://github.com/tangxusc/higress-graphql-federation.git
-cd higress-graphql-federation
+git clone https://github.com/tangxusc/graphql-federation.git
+cd graphql-federation
 
 # 构建 GraphQL Federation 插件
 make build-local
@@ -314,6 +314,6 @@ make test-down
 
 **Made with ❤️ for the GraphQL community**
 
-[GitHub](https://github.com/tangxusc/higress-graphql-federation) • [Issues](https://github.com/tangxusc/higress-graphql-federation/issues) • [Discussions](https://github.com/tangxusc/higress-graphql-federation/discussions)
+[GitHub](https://github.com/tangxusc/graphql-federation) • [Issues](https://github.com/tangxusc/graphql-federation/issues) • [Discussions](https://github.com/tangxusc/graphql-federation/discussions)
 
 </div>
