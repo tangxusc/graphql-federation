@@ -3,7 +3,7 @@
 <div align="center">
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Go Version](https://img.shields.io/badge/go-1.22+-blue.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/go-1.25+-blue.svg)](https://golang.org/)
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/tangxusc/higress-graphql-federation)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tangxusc/higress-graphql-federation)](https://goreportcard.com/report/github.com/tangxusc/higress-graphql-federation)
@@ -22,17 +22,16 @@
 
 ### Overview
 
-GraphQL Federation is a comprehensive solution that provides GraphQL Federation capabilities for Istio proxyv2 (Envoy). Built on top of the powerful `graphql-go-tools` library, this project enables seamless integration of multiple GraphQL services into a unified federated GraphQL API.
+GraphQL Federation is a comprehensive solution that provides GraphQL Federation capabilities for Istio proxyv2 (Envoy). Built on top of the powerful [graphql-go-tools](https://github.com/wundergraph/graphql-go-tools) library from WunderGraph, this project enables seamless integration of multiple GraphQL services into a unified federated GraphQL API using Apollo Federation protocol.
 
 ### Key Features
 
 - 🚀 **High Performance**: Built with Go for optimal performance and low latency
-- 🔗 **GraphQL Federation**: Seamlessly combine multiple GraphQL services
+- 🔗 **GraphQL Federation**: Seamlessly combine multiple GraphQL services using Apollo Federation
 - 🌐 **Istio proxyv2 Integration**: Runs as an Envoy Go filter within Istio proxyv2
 - 🔌 **Plugin Architecture**: Extensible plugin-based design
-- 📡 **WebSocket Support**: Full support for GraphQL subscriptions
-- 🛡️ **Security**: Built-in authentication and authorization support
-- 📊 **Monitoring**: Comprehensive logging and metrics
+- 📡 **Automatic Schema Refresh**: Periodic schema synchronization from subgraphs
+- 📊 **Request Logging**: Comprehensive request/response logging
 - 🐳 **Docker Ready**: Containerized deployment support
 
 ### Architecture
@@ -68,7 +67,7 @@ graphql-federation/
 
 #### Prerequisites
 
-- Go 1.22+
+- Go 1.25+
 - Docker (for testing)
 - Make
 
@@ -80,10 +79,10 @@ git clone https://github.com/tangxusc/higress-graphql-federation.git
 cd higress-graphql-federation
 
 # Build the GraphQL Federation plugin
-make build
+make build-local
 ```
 
-This will generate a shared library (`graphql-federation_arm64.so`) that can be loaded into Envoy.
+This will generate a shared library (`graphql-federation_arm64.so` or `graphql-federation_amd64.so` depending on `GOARCH`) in the `build/` directory that can be loaded into Envoy.
 
 #### Testing Locally
 
@@ -112,7 +111,7 @@ Configure the plugin through Envoy's Go filter extension:
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.Config
     library_id: graphql-federation
-    library_path: "/etc/envoy/graphql-federation_arm64.so"
+    library_path: "/var/lib/istio/envoy/graphql-federation_arm64.so"
     plugin_name: graphql-federation
     plugin_config:
       "@type": type.googleapis.com/xds.type.v3.TypedStruct
@@ -120,10 +119,8 @@ Configure the plugin through Envoy's Go filter extension:
         sub_graphql_config:
           - service_name: 'users'
             graphql_url: 'http://users-service:4001/graphql'
-            subscription_url: 'ws://users-service:4001/graphql'
           - service_name: 'products'
             graphql_url: 'http://products-service:4002/graphql'
-            subscription_url: 'ws://products-service:4002/graphql'
         schema_refresh_interval: "5m"
         schema_refresh_timeout: "1m"
 ```
@@ -134,19 +131,24 @@ Configure the plugin through Envoy's Go filter extension:
 |-------|------|-------------|---------|
 | `sub_graphql_config` | Array | Configuration for subgraph services | Required |
 | `service_name` | String | Name of the GraphQL service | Required |
-| `graphql_url` | String | HTTP endpoint for GraphQL queries | Required |
-| `subscription_url` | String | WebSocket endpoint for subscriptions | Optional |
+| `graphql_url` | String | HTTP endpoint for GraphQL queries (also used for subscriptions) | Required |
 | `schema_refresh_interval` | Duration | How often to refresh the federated schema | `5m` |
 | `schema_refresh_timeout` | Duration | Timeout for schema refresh operations | `1m` |
+
+**Note**: The filter only handles HTTP POST requests to `/graphql` endpoint. GraphQL subscriptions are currently not supported.
 
 ### Development
 
 #### Project Structure
 
-- **graphql-plugin/**: Envoy Golang HTTP filter implementation for Istio proxyv2
-- **graphql-go-tools-v2/**: Core GraphQL parsing, validation, and execution library
-- **graphql-go-tools-execution/**: GraphQL execution engine with federation support
-- **composition-go/**: Federation composition and router configuration utilities
+- **cmd/graphql/**: Entry point for building the Envoy Go filter plugin
+- **pkg/filter/**: Core implementation including filter logic, configuration, and engine management
+  - `filter.go`: Main filter implementation handling HTTP requests
+  - `config.go`: Configuration parsing and plugin factory
+  - `engine.go`: GraphQL federation engine initialization and schema refresh
+  - `register_filter.go`: Filter registration with Envoy
+  - `logger_adapter.go`: Logger adapter implementation
+  - `types.go`: Type definitions
 
 #### Contributing
 
@@ -166,17 +168,16 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ### 概述
 
-GraphQL Federation 是一个基于 Istio proxyv2（Envoy）的 GraphQL 联邦能力解决方案。依托强大的 `graphql-go-tools` 库构建，该项目能够将多个 GraphQL 服务无缝集成到统一的联邦 GraphQL API 中。
+GraphQL Federation 是一个基于 Istio proxyv2（Envoy）的 GraphQL 联邦能力解决方案。依托强大的 [graphql-go-tools](https://github.com/wundergraph/graphql-go-tools) 库（由 WunderGraph 开发）构建，该项目能够将多个 GraphQL 服务无缝集成到统一的联邦 GraphQL API 中，遵循 Apollo Federation 协议。
 
 ### 核心特性
 
 - 🚀 **高性能**: 使用 Go 构建，具有最佳性能和低延迟
-- 🔗 **GraphQL 联邦**: 无缝组合多个 GraphQL 服务
+- 🔗 **GraphQL 联邦**: 使用 Apollo Federation 无缝组合多个 GraphQL 服务
 - 🌐 **Istio proxyv2 集成**: 作为 Envoy Go 过滤器运行于 Istio proxyv2 中
 - 🔌 **插件架构**: 可扩展的基于插件的设计
-- 📡 **WebSocket 支持**: 完整支持 GraphQL 订阅
-- 🛡️ **安全性**: 内置认证和授权支持
-- 📊 **监控**: 全面的日志记录和指标
+- 📡 **自动 Schema 刷新**: 定期从子图同步 Schema
+- 📊 **请求日志**: 全面的请求/响应日志记录
 - 🐳 **Docker 就绪**: 容器化部署支持
 
 ### 架构
@@ -212,7 +213,7 @@ graphql-federation/
 
 #### 环境要求
 
-- Go 1.22+
+- Go 1.25+
 - Docker (用于测试)
 - Make
 
@@ -224,10 +225,10 @@ git clone https://github.com/tangxusc/higress-graphql-federation.git
 cd higress-graphql-federation
 
 # 构建 GraphQL Federation 插件
-make build
+make build-local
 ```
 
-这将生成一个共享库 (`graphql-federation_arm64.so`)，可以加载到 Envoy 中。
+这将根据 `GOARCH` 环境变量（默认为 `arm64`）生成对应的共享库（`graphql-federation_arm64.so` 或 `graphql-federation_amd64.so`），文件位于 `build/` 目录中，可以加载到 Envoy 中。
 
 #### 本地测试
 
@@ -241,7 +242,7 @@ curl -X POST -H "Content-Type: application/json" \
   http://localhost:10000/graphql
 
 # 查看日志
-docker logs -f scripts-envoy-1
+docker logs -f scripts_envoy_1
 
 # 停止测试环境
 make test-down
@@ -256,7 +257,7 @@ make test-down
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.golang.v3alpha.Config
     library_id: graphql-federation
-    library_path: "/etc/envoy/graphql-federation_arm64.so"
+    library_path: "/var/lib/istio/envoy/graphql-federation_arm64.so"
     plugin_name: graphql-federation
     plugin_config:
       "@type": type.googleapis.com/xds.type.v3.TypedStruct
@@ -264,10 +265,8 @@ make test-down
         sub_graphql_config:
           - service_name: 'users'
             graphql_url: 'http://users-service:4001/graphql'
-            subscription_url: 'ws://users-service:4001/graphql'
           - service_name: 'products'
             graphql_url: 'http://products-service:4002/graphql'
-            subscription_url: 'ws://products-service:4002/graphql'
         schema_refresh_interval: "5m"
         schema_refresh_timeout: "1m"
 ```
@@ -278,19 +277,24 @@ make test-down
 |------|------|------|--------|
 | `sub_graphql_config` | 数组 | 子图服务配置 | 必需 |
 | `service_name` | 字符串 | GraphQL 服务名称 | 必需 |
-| `graphql_url` | 字符串 | GraphQL 查询的 HTTP 端点 | 必需 |
-| `subscription_url` | 字符串 | 订阅的 WebSocket 端点 | 可选 |
+| `graphql_url` | 字符串 | GraphQL 查询的 HTTP 端点（订阅也使用此端点） | 必需 |
 | `schema_refresh_interval` | 持续时间 | 刷新联邦模式的频率 | `5m` |
 | `schema_refresh_timeout` | 持续时间 | 模式刷新操作的超时时间 | `1m` |
+
+**注意**: 过滤器目前仅处理发送到 `/graphql` 端点的 HTTP POST 请求。GraphQL 订阅功能目前尚未支持。
 
 ### 开发
 
 #### 项目结构
 
-- **graphql-plugin/**: 面向 Istio proxyv2 的 Envoy Golang HTTP 过滤器实现
-- **graphql-go-tools-v2/**: 核心 GraphQL 解析、验证和执行库
-- **graphql-go-tools-execution/**: 支持联邦的 GraphQL 执行引擎
-- **composition-go/**: 联邦组合和路由器配置工具
+- **cmd/graphql/**: 构建 Envoy Go 过滤器插件的入口点
+- **pkg/filter/**: 核心实现，包括过滤器逻辑、配置和引擎管理
+  - `filter.go`: 处理 HTTP 请求的主要过滤器实现
+  - `config.go`: 配置解析和插件工厂
+  - `engine.go`: GraphQL 联邦引擎初始化和 Schema 刷新
+  - `register_filter.go`: 在 Envoy 中注册过滤器
+  - `logger_adapter.go`: 日志适配器实现
+  - `types.go`: 类型定义
 
 #### 贡献
 
